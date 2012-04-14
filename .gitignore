@@ -1,0 +1,12 @@
+a.out
+a.exe
+*.o
+*.pyc
+*.ignore
+/objs/*
+src/config.h
+Makefile
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+CMakeFiles
