@@ -1,0 +1,6 @@
+set(PROG_NAME Opentube)
+set(UNIX_PROG_NAME opentube)
+set(PROG_VERSION "0.1alpha")
+set(GETTEXT_DOMAIN "${UNIX_PROG_NAME}")
+set(LOCALE_DIR "locale")
+set(CONFIG_PATH "server.json")

@@ -1,0 +1,10 @@
+{
+	"server":
+	{
+		"listen":
+		{
+			"host": "localhost",
+			"port": 8080
+		}
+	}
+}

@@ -1,0 +1,7 @@
+[submodule "libs/jemalloc"]
+	path = libs/jemalloc
+	url = git://github.com/VladX/Jemalloc.git
+
+[submodule "libs/libuv/libuv"]
+	path = libs/libuv/libuv
+	url = git://github.com/joyent/libuv.git
