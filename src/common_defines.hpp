@@ -28,4 +28,49 @@
 #define unlikely(X) (X)
 #endif
 
+#if DEBUG_LEVEL >= 1
+#define DEBUG_1(X) X
+#else
+#define DEBUG_1(X)
+#endif
+
+#if DEBUG_LEVEL >= 2
+#define DEBUG_2(X) X
+#else
+#define DEBUG_2(X)
+#endif
+
+#if DEBUG_LEVEL >= 3
+#define DEBUG_3(X) X
+#else
+#define DEBUG_3(X)
+#endif
+
+#define LOG_NOTICE(X) opentube::logger.notice() << X << std::endl
+#define LOG_ERROR(X) { \
+	if (opentube::logger.osyslog) \
+	{ \
+		std::stringstream buf; \
+		buf << X; \
+		opentube::logger.syslog(buf.str(), 1); \
+	} \
+	opentube::logger.error() << X << std::endl; \
+}
+#define LOG_CRITICAL(X) { \
+	if (opentube::logger.osyslog) \
+	{ \
+		std::stringstream buf; \
+		buf << X; \
+		opentube::logger.syslog(buf.str(), 2); \
+	} \
+	opentube::logger.critical() << X << std::endl; \
+	exit(EXIT_FAILURE); \
+}
+
+#define DEBUG_PRINT_1(X) DEBUG_1(opentube::logger.debug(__FILE__, __LINE__) << X << std::endl)
+#define DEBUG_PRINT_2(X) DEBUG_2(opentube::logger.debug(__FILE__, __LINE__) << X << std::endl)
+#define DEBUG_PRINT_3(X) DEBUG_3(opentube::logger.debug(__FILE__, __LINE__) << X << std::endl)
+
+#define LAST_ERROR_EXCEPTION(M) boost::system::system_error(getlasterror(), boost::system::get_system_category(), M)
+
 #endif

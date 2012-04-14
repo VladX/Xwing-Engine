@@ -106,7 +106,7 @@ endif(MSVC)
 if(WIN32)
  add_definitions(-D_WIN32_WINNT=0x0600 -DEIO_STACKSIZE=262144 -D_GNU_SOURCE)
  set(LINK_LIBS ${LINK_LIBS} ws2_32 psapi iphlpapi)
- include_directories(libuv/src/ares/config_win32)
+ include_directories(libuv/src/ares/config_win32/)
  set(SOURCES ${SOURCES}
              libuv/include/uv-private/tree.h
              libuv/include/uv-private/uv-win.h
@@ -190,6 +190,25 @@ if(LINUX)
  add_definitions(-DEV_CONFIG_H="config_linux.h" -DEIO_CONFIG_H="config_linux.h")
  set(LINK_LIBS ${LINK_LIBS} rt dl)
 endif(LINUX)
+
+if(OSX)
+ include_directories(libuv/src/ares/config_darwin/)
+ set(SOURCES ${SOURCES}
+             libuv/src/unix/darwin.c
+             libuv/src/unix/kqueue.c
+ )
+ add_definitions(-D_DARWIN_USE_64_BIT_INODE=1 -DEV_CONFIG_H="config_darwin.h" -DEIO_CONFIG_H="config_darwin.h")
+endif(OSX)
+
+if(BSD)
+ include_directories(libuv/src/ares/config_freebsd/)
+ set(SOURCES ${SOURCES}
+             libuv/src/unix/freebsd.c
+             libuv/src/unix/kqueue.c
+ )
+ add_definitions(-DEV_CONFIG_H="config_freebsd.h" -DEIO_CONFIG_H="config_freebsd.h")
+ set(LINK_LIBS ${LINK_LIBS} kvm)
+endif(BSD)
 
 include_directories(libuv/include/ libuv/include/uv-private/ libuv/src/)
 add_library(uv STATIC ${SOURCES})

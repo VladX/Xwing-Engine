@@ -5,6 +5,7 @@
 		{
 			"host": "localhost",
 			"port": 8080
-		}
+		},
+		"log-file": "opentube.log"
 	}
 }

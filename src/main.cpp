@@ -33,13 +33,11 @@ static void config (int argc, char ** argv)
 	}
 	catch (const char * err)
 	{
-		cerr << translate("Error") << ": " << translate(err) << endl;
-		exit(EXIT_FAILURE);
+		LOG_CRITICAL(translate(err));
 	}
 	catch (exception & e)
 	{
-		cerr << translate("Error") << ": " << e.what() << endl;
-		exit(EXIT_FAILURE);
+		LOG_CRITICAL(e.what());
 	}
 }
 

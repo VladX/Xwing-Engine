@@ -17,32 +17,34 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _INT_CONFIG_H
-#define _INT_CONFIG_H 1
+#ifndef __LOGGER_H_
+#define __LOGGER_H_ 1
 
-#define PROG_NAME "@PROG_NAME@"
-#define UNIX_PROG_NAME "@UNIX_PROG_NAME@"
-#define PROG_VERSION "@PROG_VERSION@"
-#define DEBUG_LEVEL @DEBUG_LEVEL@ /* 0 - disabled */
-#define GETTEXT_DOMAIN "@GETTEXT_DOMAIN@"
-#define LOCALE_DIR "@LOCALE_DIR@"
-#define SERVER_STRING PROG_NAME "/" PROG_VERSION
-#define CONFIG_PATH "@CONFIG_PATH@"
-#define SYSTEM_SHORT_NAME "@CMAKE_SYSTEM_NAME@"
-#define SYSTEM_FULL_NAME "@CMAKE_SYSTEM@"
-#define LISTEN_BACKLOG 500
+#include "common.hpp"
 
-#cmakedefine WIN32
-#cmakedefine OSX
-#cmakedefine BSD
-#cmakedefine LINUX
+class Logger
+{
+private:
+	std::ostream * out;
+	std::ostream * err;
+	
+	void print_level (size_t, std::ostream &, bool);
+	
+public:
+	bool osyslog;
+	
+	Logger () : out(&std::cout), err(&std::cerr), osyslog(true) {};
+	std::ostream & notice ();
+	std::ostream & error ();
+	std::ostream & critical ();
+	std::ostream & debug (const char *, int);
+	void syslog (std::string, int);
+	void set_ostream (std::ostream & strm_out, std::ostream & strm_err);
+};
 
-#cmakedefine MSVC
-#cmakedefine MINGW
-#cmakedefine CLANG
+namespace opentube
+{
+	extern Logger logger;
+};
 
-#cmakedefine HAVE_CPP0X_STYLE_HEADERS
-#cmakedefine COMPILER_HAVE_BUILTIN_EXPECT
-#cmakedefine HAVE_SYSLOG_H
-
-#endif /* #ifndef _INT_CONFIG_H */
+#endif

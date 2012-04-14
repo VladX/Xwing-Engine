@@ -4,6 +4,7 @@ a.exe
 *.pyc
 *.ignore
 /objs/*
+/*.log
 src/config.h
 Makefile
 CMakeCache.txt

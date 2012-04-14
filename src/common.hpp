@@ -27,9 +27,13 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <stdexcept>
 #include <boost/locale.hpp>
 #include <boost/exception/all.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/system/system_error.hpp>
+#include <boost/system/error_code.hpp>
 #include "config.h"
 #ifdef HAVE_CPP0X_STYLE_HEADERS
 #include <cstdlib>
@@ -44,9 +48,11 @@
 #endif
 #include "common_types.hpp"
 #include "common_defines.hpp"
+#include "common_functions.hpp"
 #include "allocator.hpp"
 #include "config.hpp"
 #include "static_memory_pool.hpp"
+#include "logger.hpp"
 using namespace boost::locale;
 using namespace std;
 

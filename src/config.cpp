@@ -26,14 +26,14 @@ namespace opentube
 	Config config;
 };
 
-static const char * required_directives[] = {
-	"server.listen", "server.user", "server.group", "server.pid-file", "server.log-file", "server.data",
-	"http.document-root", "http.temp", "http.cache.prefix", "http.cache.update",
-	"template.name", "database.servers"
-};
-
 void Config::load (ptree & pt)
 {
-	auto host = pt.get<string>("server.listen.host");
-	auto port = pt.get<uint16_t>("server.listen.port");
+	//auto host = pt.get<string>("server.listen.host");
+	//auto port = pt.get<uint16_t>("server.listen.port");
+	auto logfile = pt.get<string>("server.log-file");
+	auto logstrm = new ofstream(logfile, ios_base::app);
+	if (logstrm->fail())
+		throw LAST_ERROR_EXCEPTION(logfile);
+	opentube::logger.set_ostream(* logstrm, * logstrm);
+	opentube::logger.osyslog = false;
 }

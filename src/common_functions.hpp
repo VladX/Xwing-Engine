@@ -17,32 +17,25 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _INT_CONFIG_H
-#define _INT_CONFIG_H 1
+#ifndef __COMMON_FUNCTIONS_H_
+#define __COMMON_FUNCTIONS_H_ 1
 
-#define PROG_NAME "@PROG_NAME@"
-#define UNIX_PROG_NAME "@UNIX_PROG_NAME@"
-#define PROG_VERSION "@PROG_VERSION@"
-#define DEBUG_LEVEL @DEBUG_LEVEL@ /* 0 - disabled */
-#define GETTEXT_DOMAIN "@GETTEXT_DOMAIN@"
-#define LOCALE_DIR "@LOCALE_DIR@"
-#define SERVER_STRING PROG_NAME "/" PROG_VERSION
-#define CONFIG_PATH "@CONFIG_PATH@"
-#define SYSTEM_SHORT_NAME "@CMAKE_SYSTEM_NAME@"
-#define SYSTEM_FULL_NAME "@CMAKE_SYSTEM@"
-#define LISTEN_BACKLOG 500
+inline const char * cbasename (const char * path)
+{
+	const char * p = path + std::strlen(path) - 1;
+	for (; p > path && * p != '/' && * p != '\\'; p--);
+	if (* p == '/' || * p == '\\')
+		p++;
+	return p;
+}
 
-#cmakedefine WIN32
-#cmakedefine OSX
-#cmakedefine BSD
-#cmakedefine LINUX
+inline int getlasterror ()
+{
+#ifdef WIN32
+	return (int) GetLastError();
+#else
+	return errno;
+#endif
+}
 
-#cmakedefine MSVC
-#cmakedefine MINGW
-#cmakedefine CLANG
-
-#cmakedefine HAVE_CPP0X_STYLE_HEADERS
-#cmakedefine COMPILER_HAVE_BUILTIN_EXPECT
-#cmakedefine HAVE_SYSLOG_H
-
-#endif /* #ifndef _INT_CONFIG_H */
+#endif
