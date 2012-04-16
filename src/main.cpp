@@ -25,7 +25,7 @@ static void config (int argc, char ** argv)
 	try
 	{
 		CmdlineParser parser(argc, argv);
-		opentube::config.load(parser.get_ptree());
+		opentube::config.load(parser.get_files());
 	}
 	catch (int e)
 	{

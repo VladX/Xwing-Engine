@@ -32,12 +32,16 @@ private:
 	
 public:
 	bool osyslog;
+	bool ostdout;
 	
-	Logger () : out(&std::cout), err(&std::cerr), osyslog(true) {};
+	Logger () : out(&std::cout), err(&std::cerr), osyslog(true), ostdout(false) {};
 	std::ostream & notice ();
 	std::ostream & error ();
+	std::ostream & error (std::ostream &);
 	std::ostream & critical ();
+	std::ostream & critical (std::ostream &);
 	std::ostream & debug (const char *, int);
+	std::ostream & debug (std::ostream &, const char *, int);
 	void syslog (std::string, int);
 	void set_ostream (std::ostream & strm_out, std::ostream & strm_err);
 };

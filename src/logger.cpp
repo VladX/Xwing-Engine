@@ -92,18 +92,33 @@ ostream & Logger::notice ()
 
 ostream & Logger::error ()
 {
-	print_level(1, * err, err == &cerr);
-	return (* err);
+	return error(* err);
 }
 
 ostream & Logger::critical ()
 {
-	print_level(2, * err, err == &cerr);
-	return (* err);
+	return critical(* err);
+}
+
+ostream & Logger::error (ostream & err)
+{
+	print_level(1, err, err == cerr);
+	return err;
+}
+
+ostream & Logger::critical (ostream & err)
+{
+	print_level(2, err, err == cerr);
+	return err;
 }
 
 ostream & Logger::debug (const char * file, int line)
 {
-	(* out) << "Debug message (File \"" << cbasename(file) << "\", line " << line << "): ";
-	return (* out);
+	return debug(* out, file, line);
+}
+
+ostream & Logger::debug (ostream & out, const char * file, int line)
+{
+	out << "Debug message (File \"" << cbasename(file) << "\", line " << line << "): ";
+	return out;
 }

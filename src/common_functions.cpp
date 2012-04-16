@@ -17,27 +17,15 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __COMMON_FUNCTIONS_H_
-#define __COMMON_FUNCTIONS_H_ 1
+#include "common_functions.hpp"
 
-#include "common.hpp"
-
-inline const char * cbasename (const char * path)
-{
-	const char * p = path + std::strlen(path) - 1;
-	for (; p > path && * p != '/' && * p != '\\'; p--);
-	if (* p == '/' || * p == '\\')
-		p++;
-	return p;
-}
-
-#ifndef WIN32
-inline int getlasterror ()
-{
-	return errno;
-}
-#else
-int getlasterror (); 
+#ifdef WIN32
+#include <windows.h>
 #endif
 
+#ifdef WIN32
+int getlasterror ()
+{
+	return (int) GetLastError();
+}
 #endif

@@ -67,15 +67,16 @@ if(NOT CMAKE_BUILD_TYPE)
  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel" FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-set(link_libraries_list jemalloc uv)
-set(link_directories_list ${CMAKE_BINARY_DIR}/libs/jemalloc ${CMAKE_BINARY_DIR}/libs/libuv)
+set(link_libraries_list jemalloc uv lua)
+set(link_directories_list ${CMAKE_BINARY_DIR}/libs/jemalloc ${CMAKE_BINARY_DIR}/libs/libuv ${CMAKE_BINARY_DIR}/libs/lua)
+include_directories(${CMAKE_BINARY_DIR}/libs/lua)
 set(exec_filename opentube-server)
 
 file(GLOB source_files *.cpp)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
-find_package(Boost 1.48.0 COMPONENTS locale system REQUIRED)
+find_package(Boost 1.48.0 COMPONENTS locale system filesystem REQUIRED)
 set(link_libraries_list ${link_libraries_list} ${Boost_LIBRARIES})
 
 include_directories(${Boost_INCLUDE_DIRS})

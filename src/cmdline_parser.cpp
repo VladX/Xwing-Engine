@@ -18,14 +18,13 @@
  */
 
 #include "cmdline_parser.hpp"
-using namespace boost::property_tree;
 
 CmdlineParser::CmdlineParser (int argc, char ** argv)
 {
 	const char copyright[] = "Copyright (C) 2011, 2012 - Xpast\nContact e-mail: <vvladxx@gmail.com>.";
 	int i;
 	if (argc < 2)
-		read_json(CONFIG_PATH, pt);
+		config_files.push_back(CONFIG_PATH);
 	for (i = 1; i < argc; i++)
 		if (strcmp(argv[i], "--version") == 0)
 		{
@@ -35,17 +34,7 @@ CmdlineParser::CmdlineParser (int argc, char ** argv)
 		}
 		else if (strcmp(argv[i], "--help") == 0)
 		{
-			string tmp;
-			tmp += "  Usage: ";
-			tmp += argv[0];
-			tmp += ' ';
-			size_t l = tmp.length();
-			cout << tmp << "[-f config_file -f another_config_file ...]" << endl;
-			tmp = ' ';
-			while (--l)
-				tmp += ' ';
-			cout << tmp << "[-j \"{ foo: bar }\" ...]" << endl;
-			cout << tmp << "[-s \"name\" \"value\" ...]" << endl;
+			cout << "  Usage: " << argv[0] << ' ' << "[-f config_file -f another_config_file ...]" << endl;
 			cout << endl << copyright << endl;
 			throw 0;
 		}
@@ -53,30 +42,8 @@ CmdlineParser::CmdlineParser (int argc, char ** argv)
 		{
 			if (i == argc - 1)
 				throw "File name expected";
-			ptree f;
 			i++;
-			read_json(argv[i], f);
-			for (basic_ptree<string, string>::iterator it = f.begin(); it != f.end(); it++)
-				pt.push_back(* it);
-		}
-		else if (strcmp(argv[i], "-j") == 0)
-		{
-			if (i == argc - 1)
-				throw "JSON string expected";
-			ptree j;
-			i++;
-			stringstream strm;
-			strm << argv[i];
-			read_json(strm, j);
-			for (basic_ptree<string, string>::iterator it = j.begin(); it != j.end(); it++)
-				pt.push_back(* it);
-		}
-		else if (strcmp(argv[i], "-s") == 0)
-		{
-			if (i >= argc - 2)
-				throw "Key-value pair expected";
-			pt.put(argv[i + 1], argv[i + 2]);
-			i += 2;
+			config_files.push_back(argv[i]);
 		}
 		else
 			throw "Unknown option passed";

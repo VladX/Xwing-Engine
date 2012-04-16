@@ -21,12 +21,14 @@
 #define __CONFIG_H_ 1
 
 #include "common.hpp"
-#include <boost/property_tree/ptree.hpp>
 
 class Config
 {
 public:
-	void load (boost::property_tree::ptree & pt);
+	uint16_t port;
+	std::string host;
+	
+	void load (std::vector<std::string> & config_files);
 };
 
 namespace opentube

@@ -5,6 +5,7 @@ a.exe
 *.ignore
 /objs/*
 /*.log
+/config.lua
 src/config.h
 Makefile
 CMakeCache.txt

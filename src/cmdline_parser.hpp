@@ -18,16 +18,13 @@
  */
 
 #include "common.hpp"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-using boost::property_tree::ptree;
 
 class CmdlineParser
 {
 private:
-	ptree pt;
+	vector<string> config_files;
 	
 public:
 	CmdlineParser (int argc, char ** argv);
-	ptree & get_ptree () { return pt; };
+	vector<string> & get_files () { return config_files; };
 };

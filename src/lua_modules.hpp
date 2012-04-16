@@ -17,27 +17,12 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __COMMON_FUNCTIONS_H_
-#define __COMMON_FUNCTIONS_H_ 1
+#ifndef __LUA_MODULES_H_
+#define __LUA_MODULES_H_ 1
 
 #include "common.hpp"
+#include <lua.hpp>
 
-inline const char * cbasename (const char * path)
-{
-	const char * p = path + std::strlen(path) - 1;
-	for (; p > path && * p != '/' && * p != '\\'; p--);
-	if (* p == '/' || * p == '\\')
-		p++;
-	return p;
-}
-
-#ifndef WIN32
-inline int getlasterror ()
-{
-	return errno;
-}
-#else
-int getlasterror (); 
-#endif
+void lua_load_module_path (lua_State *);
 
 #endif

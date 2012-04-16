@@ -54,6 +54,8 @@
 		buf << X; \
 		opentube::logger.syslog(buf.str(), 1); \
 	} \
+	if (opentube::logger.ostdout) \
+		opentube::logger.error(cerr) << X << std::endl; \
 	opentube::logger.error() << X << std::endl; \
 }
 #define LOG_CRITICAL(X) { \
@@ -63,13 +65,27 @@
 		buf << X; \
 		opentube::logger.syslog(buf.str(), 2); \
 	} \
+	if (opentube::logger.ostdout) \
+		opentube::logger.critical(cerr) << X << std::endl; \
 	opentube::logger.critical() << X << std::endl; \
 	exit(EXIT_FAILURE); \
 }
 
-#define DEBUG_PRINT_1(X) DEBUG_1(opentube::logger.debug(__FILE__, __LINE__) << X << std::endl)
-#define DEBUG_PRINT_2(X) DEBUG_2(opentube::logger.debug(__FILE__, __LINE__) << X << std::endl)
-#define DEBUG_PRINT_3(X) DEBUG_3(opentube::logger.debug(__FILE__, __LINE__) << X << std::endl)
+#define DEBUG_PRINT_1(X) DEBUG_1({ \
+	if (opentube::logger.ostdout) \
+		opentube::logger.debug(cout, __FILE__, __LINE__) << X << std::endl; \
+	opentube::logger.debug(__FILE__, __LINE__) << X << std::endl; \
+})
+#define DEBUG_PRINT_2(X) DEBUG_2({ \
+	if (opentube::logger.ostdout) \
+		opentube::logger.debug(cout, __FILE__, __LINE__) << X << std::endl; \
+	opentube::logger.debug(__FILE__, __LINE__) << X << std::endl; \
+})
+#define DEBUG_PRINT_3(X) DEBUG_3({ \
+	if (opentube::logger.ostdout) \
+		opentube::logger.debug(cout, __FILE__, __LINE__) << X << std::endl; \
+	opentube::logger.debug(__FILE__, __LINE__) << X << std::endl; \
+})
 
 #define LAST_ERROR_EXCEPTION(M) boost::system::system_error(getlasterror(), boost::system::get_system_category(), M)
 

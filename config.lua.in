@@ -1,0 +1,13 @@
+BUILD = path.isfile('Makefile') or path.isfile('CMakeLists.txt')
+LOGDIR = path.current()
+if os.linux or os.bsd then
+	local logdir = '/var/log'
+	if not BUILD and path.isdir(logdir) then
+		LOGDIR = logdir
+	end
+end
+
+server = {
+	['listen'] = 'localhost:8080',
+	['log-file'] = path.join(LOGDIR, '@UNIX_PROG_NAME@.log')
+}
