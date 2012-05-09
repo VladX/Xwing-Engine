@@ -22,55 +22,32 @@
 
 #include "common.hpp"
 
+namespace opentube
+{
+
+extern void * (* alloc_fn)(size_t);
+extern void * (* realloc_fn)(void *, size_t);
+extern void (* free_fn)(void *);
+extern void (* init_fn)(void);
+
+};
+
 template<typename T>
 class GlobalAllocator : public std::allocator<T>
 {
-private:
-	typedef void * (* alloc_fn_t) (size_t);
-	typedef void * (* realloc_fn_t) (void *, size_t);
-	typedef void (* free_fn_t) (void *);
-	alloc_fn_t alloc_fn;
-	realloc_fn_t realloc_fn;
-	free_fn_t free_fn;
-	
 public:
-	GlobalAllocator ();
-	GlobalAllocator (alloc_fn_t alloc_fn, realloc_fn_t realloc_fn, free_fn_t free_fn, void (* init_fn)(void) = 0);
-	~GlobalAllocator () {};
-	void set_functions (alloc_fn_t alloc_fn, realloc_fn_t realloc_fn, free_fn_t free_fn, void (* init_fn)(void) = 0);
-	T * allocate (size_t size) throw (std::bad_alloc);
-	T * allocate (size_t size, const T *) throw (std::bad_alloc) { return allocate(size); };
-	T * reallocate (T * ptr, size_t new_size) throw (std::bad_alloc);
-	void deallocate (T * ptr);
+	T * allocate (size_t);
+	T * allocate (size_t size, const T *) { return allocate(size); };
+	T * zallocate (size_t);
+	T * reallocate (T *, size_t);
+	void deallocate (T *);
 	void deallocate (T * ptr, size_t) { deallocate(ptr); };
 };
 
 template<typename T>
-GlobalAllocator<T>::GlobalAllocator ()
+inline T * GlobalAllocator<T>::allocate (size_t size)
 {
-	set_functions(reinterpret_cast<alloc_fn_t>(std::malloc), reinterpret_cast<realloc_fn_t>(std::realloc), reinterpret_cast<free_fn_t>(std::free));
-}
-
-template<typename T>
-GlobalAllocator<T>::GlobalAllocator (alloc_fn_t alloc_fn, realloc_fn_t realloc_fn, free_fn_t free_fn, void (* init_fn)(void))
-{
-	set_functions(alloc_fn, realloc_fn, free_fn, init_fn);
-}
-
-template<typename T>
-void GlobalAllocator<T>::set_functions (alloc_fn_t alloc_fn, realloc_fn_t realloc_fn, free_fn_t free_fn, void (* init_fn)(void))
-{
-	this->alloc_fn = alloc_fn;
-	this->realloc_fn = realloc_fn;
-	this->free_fn = free_fn;
-	if (init_fn)
-		init_fn();
-}
-
-template<typename T>
-inline T * GlobalAllocator<T>::allocate (size_t size) throw (std::bad_alloc)
-{
-	T * ptr = reinterpret_cast<T *>(alloc_fn(sizeof(T) * size));
+	T * ptr = reinterpret_cast<T *>(opentube::alloc_fn(sizeof(T) * size));
 	if (ptr)
 		return ptr;
 	if (size != 0)
@@ -79,9 +56,15 @@ inline T * GlobalAllocator<T>::allocate (size_t size) throw (std::bad_alloc)
 }
 
 template<typename T>
-inline T * GlobalAllocator<T>::reallocate (T * ptr, size_t new_size) throw (std::bad_alloc)
+inline T * GlobalAllocator<T>::zallocate (size_t size)
 {
-	ptr = reinterpret_cast<T *>(realloc_fn(ptr, sizeof(T) * new_size));
+	return reinterpret_cast<T *>(memset(allocate(size), 0, size));
+}
+
+template<typename T>
+inline T * GlobalAllocator<T>::reallocate (T * ptr, size_t new_size)
+{
+	ptr = reinterpret_cast<T *>(opentube::realloc_fn(ptr, sizeof(T) * new_size));
 	if (likely(ptr))
 		return ptr;
 	if (new_size != 0)
@@ -92,12 +75,56 @@ inline T * GlobalAllocator<T>::reallocate (T * ptr, size_t new_size) throw (std:
 template<typename T>
 inline void GlobalAllocator<T>::deallocate (T * ptr)
 {
-	free_fn(ptr);
+	opentube::free_fn(ptr);
 }
 
 namespace opentube
 {
-	extern GlobalAllocator<char> allocator;
+
+extern GlobalAllocator<char> allocator;
+
 };
+
+inline void * operator new (size_t size)
+{
+	return opentube::allocator.allocate(size);
+}
+
+inline void * operator new (size_t size, const std::nothrow_t &) throw()
+{
+	return opentube::alloc_fn(size);
+}
+
+inline void * operator new[] (size_t size)
+{
+	return opentube::allocator.allocate(size);
+}
+
+inline void * operator new[] (size_t size, const std::nothrow_t &) throw()
+{
+	return opentube::alloc_fn(size);
+}
+
+inline void operator delete (void * ptr)
+{
+	opentube::allocator.deallocate(reinterpret_cast<char *>(ptr));
+}
+
+inline void operator delete (void * ptr, const std::nothrow_t &) throw()
+{
+	opentube::allocator.deallocate(reinterpret_cast<char *>(ptr));
+}
+
+inline void operator delete[] (void * ptr)
+{
+	opentube::allocator.deallocate(reinterpret_cast<char *>(ptr));
+}
+
+inline void operator delete[] (void * ptr, const std::nothrow_t &) throw()
+{
+	opentube::allocator.deallocate(reinterpret_cast<char *>(ptr));
+}
+
+void allocator_setup ();
 
 #endif

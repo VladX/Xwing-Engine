@@ -26,15 +26,49 @@ extern "C"
 	void * je_calloc (size_t, size_t);
 	void * je_realloc (void *, size_t);
 	void je_free (void *);
+	size_t je_malloc_usable_size (void *);
 	void malloc_init_hard ();
 	void jemalloc_darwin_init ();
 };
+
+#ifdef OSX
+static void * osx_malloc_hook (size_t);
+#endif
 
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
 void * (* __malloc_hook)(size_t) = je_malloc;
 void * (* __realloc_hook)(void *, size_t) = je_realloc;
 void (* __free_hook)(void *) = je_free;
 #endif
+
+namespace opentube
+{
+
+#if defined(WIN32)
+void * (* alloc_fn)(size_t) = malloc;
+void * (* realloc_fn)(void *, size_t) = realloc;
+void (* free_fn)(void *) = free;
+void (* init_fn)(void) = malloc_init_hard;
+#elif defined(OSX)
+void * (* alloc_fn)(size_t) = osx_malloc_hook;
+void * (* realloc_fn)(void *, size_t) = je_realloc;
+void (* free_fn)(void *) = je_free;
+void (* init_fn)(void) = jemalloc_darwin_init;
+#elif defined(BSD)
+void * (* alloc_fn)(size_t) = malloc;
+void * (* realloc_fn)(void *, size_t) = realloc;
+void (* free_fn)(void *) = free;
+void (* init_fn)(void) = 0;
+#else
+void * (* alloc_fn)(size_t) = je_malloc;
+void * (* realloc_fn)(void *, size_t) = je_realloc;
+void (* free_fn)(void *) = je_free;
+void (* init_fn)(void) = 0;
+#endif
+
+GlobalAllocator<char> allocator;
+
+};
 
 #if defined(__GNUC__) || defined(CLANG) || defined(MINGW)
 __attribute__((constructor))
@@ -45,22 +79,47 @@ __declspec(allocate(".CRT$XCU")) void (__cdecl*allocator_init_)(void) = allocato
 #endif
 static void allocator_init ()
 {
-#if defined(WIN32)
-	malloc_init_hard();
-#elif defined(OSX)
-	jemalloc_darwin_init();
-#endif
+	if (opentube::init_fn)
+	{
+		opentube::init_fn();
+		opentube::init_fn = 0;
+	}
 }
 
-namespace opentube
+#ifdef OSX
+static void * osx_malloc_hook (size_t size)
 {
-#if defined(WIN32)
-	GlobalAllocator<char> allocator(je_malloc, je_realloc, je_free, malloc_init_hard);
-#elif defined(OSX)
-	GlobalAllocator<char> allocator(je_malloc, je_realloc, je_free, jemalloc_darwin_init);
-#elif defined(BSD)
-	GlobalAllocator<char> allocator;
-#else
-	GlobalAllocator<char> allocator(je_malloc, je_realloc, je_free);
+	if (opentube::init_fn)
+	{
+		opentube::init_fn();
+		opentube::init_fn = 0;
+	}
+	opentube::alloc_fn = je_malloc;
+	return opentube::alloc_fn(size);
+}
 #endif
-};
+
+#ifdef WIN32
+static void win32_free_hook (void * ptr)
+{
+	if (je_malloc_usable_size(ptr))
+		je_free(ptr);
+	else
+		free(ptr);
+}
+
+static void allocator_exit ()
+{
+	opentube::free_fn = win32_free_hook;
+}
+#endif
+
+void allocator_setup ()
+{
+#ifdef WIN32
+	opentube::alloc_fn = je_malloc;
+	opentube::realloc_fn = je_realloc;
+	opentube::free_fn = je_free;
+	process_before_exit(allocator_exit);
+#endif
+}

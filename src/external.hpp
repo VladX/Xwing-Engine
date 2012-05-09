@@ -17,40 +17,14 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGGER_H_
-#define __LOGGER_H_ 1
+#ifndef __EXTERNAL_H_
+#define __EXTERNAL_H_ 1
 
-#include "common.hpp"
-
-class Logger
+namespace external
 {
-private:
-	std::ostream * out;
-	std::ostream * err;
-	
-	void print_level (size_t, std::ostream &, bool);
-	void print_time (std::ostream &);
-	
-public:
-	bool osyslog;
-	bool ostdout;
-	
-	Logger () : out(&std::cout), err(&std::cerr), osyslog(true), ostdout(false) {};
-	char * system_last_error ();
-	std::ostream & notice ();
-	std::ostream & error ();
-	std::ostream & error (std::ostream &);
-	std::ostream & critical ();
-	std::ostream & critical (std::ostream &);
-	std::ostream & debug (const char *, int);
-	std::ostream & debug (std::ostream &, const char *, int);
-	void syslog (std::string, int);
-	void set_ostream (std::ostream & strm_out, std::ostream & strm_err);
-};
 
-namespace opentube
-{
-	extern Logger logger;
+uint64_t cityhash64 (const char *, size_t);
+
 };
 
 #endif

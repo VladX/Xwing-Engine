@@ -28,6 +28,13 @@
 #define unlikely(X) (X)
 #endif
 
+#if DEBUG_LEVEL == 0
+#undef assert
+#define assert(X)
+#else
+#include <assert.h>
+#endif
+
 #if DEBUG_LEVEL >= 1
 #define DEBUG_1(X) X
 #else
@@ -68,7 +75,19 @@
 	if (opentube::logger.ostdout) \
 		opentube::logger.critical(cerr) << X << std::endl; \
 	opentube::logger.critical() << X << std::endl; \
-	exit(EXIT_FAILURE); \
+	process_exit(EXIT_FAILURE); \
+}
+#define LOG_CRITICAL_P(X) { \
+	if (opentube::logger.osyslog) \
+	{ \
+		std::stringstream buf; \
+		buf << X << ": " << opentube::logger.system_last_error(); \
+		opentube::logger.syslog(buf.str(), 2); \
+	} \
+	if (opentube::logger.ostdout) \
+		opentube::logger.critical(cerr) << X << ": " << opentube::logger.system_last_error() << std::endl; \
+	opentube::logger.critical() << X << ": " << opentube::logger.system_last_error() << std::endl; \
+	process_exit(EXIT_FAILURE); \
 }
 
 #define DEBUG_PRINT_1(X) DEBUG_1({ \

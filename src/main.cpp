@@ -18,9 +18,14 @@
  */
 
 #include "common.hpp"
+#include "server.hpp"
+#include "process.hpp"
 #include "cmdline_parser.hpp"
 
-static void config (int argc, char ** argv)
+char ** argv;
+int argc;
+
+static void config ()
 {
 	try
 	{
@@ -29,7 +34,7 @@ static void config (int argc, char ** argv)
 	}
 	catch (int e)
 	{
-		exit(e);
+		process_exit(e);
 	}
 	catch (const char * err)
 	{
@@ -54,7 +59,12 @@ static void setup_locale ()
 
 int main (int argc, char ** argv)
 {
+	::argc = argc;
+	::argv = argv;
 	setup_locale();
-	config(argc, argv);
+	allocator_setup();
+	config();
+	process_init();
+	server_init();
 	return 0;
 }

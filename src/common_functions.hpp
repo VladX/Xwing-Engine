@@ -40,4 +40,72 @@ inline int getlasterror ()
 int getlasterror (); 
 #endif
 
+#if defined(__GNUC__) || defined(CLANG)
+inline uint32_t bswap_32 (uint32_t x)
+{
+	return __builtin_bswap32(x);
+}
+
+inline uint64_t bswap_64 (uint64_t x)
+{
+	return __builtin_bswap64(x);
+}
+#elif defined(MSVC)
+inline uint32_t bswap_32 (uint32_t x)
+{
+	return _byteswap_ulong(x);
+}
+
+inline uint64_t bswap_64 (uint64_t x)
+{
+	return _byteswap_uint64(x);
+}
+#endif
+
+#ifdef IS_HOST_BIG_ENDIAN
+inline uint32_t bswap_32_le (uint32_t x)
+{
+	return bswap_32(x);
+}
+
+inline uint64_t bswap_64_le (uint64_t x)
+{
+	return bswap_64(x);
+}
+
+inline uint32_t bswap_32_be (uint32_t x)
+{
+	return x;
+}
+
+inline uint64_t bswap_64_be (uint64_t x)
+{
+	return x;
+}
+#else
+inline uint32_t bswap_32_le (uint32_t x)
+{
+	return x;
+}
+
+inline uint64_t bswap_64_le (uint64_t x)
+{
+	return x;
+}
+
+inline uint32_t bswap_32_be (uint32_t x)
+{
+	return bswap_32(x);
+}
+
+inline uint64_t bswap_64_be (uint64_t x)
+{
+	return bswap_64(x);
+}
+#endif
+
+void process_exit (int);
+
+void process_before_exit (void (*) (void));
+
 #endif

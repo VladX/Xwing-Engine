@@ -2,7 +2,7 @@
 # Copyright (C) 2012 - VladX; http://xpast.me/
 # This file is distributed under the same license as the Opentube package.
 # Vladislav Samsonov <vvladxx@gmail.com>, 2012.
-#
+# 
 msgid ""
 msgstr ""
 "Project-Id-Version: Opentube 1.0\n"

@@ -30,7 +30,8 @@
 #define CONFIG_PATH "@CONFIG_PATH@"
 #define SYSTEM_SHORT_NAME "@CMAKE_SYSTEM_NAME@"
 #define SYSTEM_FULL_NAME "@CMAKE_SYSTEM@"
-#define LISTEN_BACKLOG 500
+#define SERVER_PREALLOC_CLIENT_T 20
+#define SERVER_PREALLOC_HTTP_HEADER 16
 
 #cmakedefine WIN32
 #cmakedefine OSX
@@ -44,5 +45,9 @@
 #cmakedefine HAVE_CPP0X_STYLE_HEADERS
 #cmakedefine COMPILER_HAVE_BUILTIN_EXPECT
 #cmakedefine HAVE_SYSLOG_H
+#cmakedefine HAVE_PRCTL_H
+#cmakedefine HAVE_SETPROCTITLE
+
+#cmakedefine IS_HOST_BIG_ENDIAN
 
 #endif /* #ifndef _INT_CONFIG_H */

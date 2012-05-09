@@ -26,9 +26,9 @@ namespace opentube
 	Config config;
 };
 
-static double lua_getfield (lua_State * L, const char * key, double def)
+static long lua_getfield (lua_State * L, const char * key, long def)
 {
-	int result;
+	long result;
 	lua_pushstring(L, key);
 	lua_gettable(L, -2);
 	if (lua_isnil(L, -1))
@@ -84,7 +84,7 @@ void Config::load (vector<string> & config_files)
 	// server.log-file
 	{
 		string logfile = boost::filesystem::absolute(lua_getfield(L, "log-file", "")).string();
-		auto logstrm = new ofstream(logfile, ios_base::app);
+		auto logstrm = new ofstream(logfile.c_str(), ios_base::app);
 		if (logstrm->fail())
 			throw LAST_ERROR_EXCEPTION(logfile);
 		opentube::logger.set_ostream(* logstrm, * logstrm);
@@ -93,7 +93,7 @@ void Config::load (vector<string> & config_files)
 	}
 	// server.listen
 	{
-		string listen = lua_getfield(L, "listen", "localhost");
+		string listen = lua_getfield(L, "listen", "127.0.0.1");
 		auto p = listen.rfind(':');
 		if (p < listen.length())
 		{
@@ -110,7 +110,17 @@ void Config::load (vector<string> & config_files)
 			host = listen;
 			port = 80; // if port not found, assuming 80
 		}
+		if (host.length() > 2 && host[0] == '[' && host[host.length() - 1] == ']')
+			host = host.substr(1, host.length() - 2);
 		DEBUG_PRINT_1("Host: " << host << ", port: " << port);
+	}
+	// server.user
+	{
+		user = lua_getfield(L, "user", "nobody");
+	}
+	// server.group
+	{
+		group = lua_getfield(L, "group", "nobody");
 	}
 	lua_close(L);
 }

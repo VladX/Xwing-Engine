@@ -17,40 +17,31 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGGER_H_
-#define __LOGGER_H_ 1
+#ifndef __HTTP_H_
+#define __HTTP_H_ 1
 
 #include "common.hpp"
+#include <uv.h>
 
-class Logger
+namespace protocol_HTTP
 {
-private:
-	std::ostream * out;
-	std::ostream * err;
-	
-	void print_level (size_t, std::ostream &, bool);
-	void print_time (std::ostream &);
-	
+
+enum http_method { HTTP_GET, HTTP_POST, HTTP_UNSUPPORTED };
+
+class HttpHeader
+{
 public:
-	bool osyslog;
-	bool ostdout;
+	static_string key;
+	static_string value;
 	
-	Logger () : out(&std::cout), err(&std::cerr), osyslog(true), ostdout(false) {};
-	char * system_last_error ();
-	std::ostream & notice ();
-	std::ostream & error ();
-	std::ostream & error (std::ostream &);
-	std::ostream & critical ();
-	std::ostream & critical (std::ostream &);
-	std::ostream & debug (const char *, int);
-	std::ostream & debug (std::ostream &, const char *, int);
-	void syslog (std::string, int);
-	void set_ostream (std::ostream & strm_out, std::ostream & strm_err);
+	HttpHeader () {};
+	HttpHeader (static_string & k, static_string & v) : key(k), value(v) {};
+	
+	static HttpHeader parse_header (char * &, size_t &);
 };
 
-namespace opentube
-{
-	extern Logger logger;
+bool parse_request_line (char * &, size_t &, enum http_method &, static_string &, uchar &);
+
 };
 
 #endif

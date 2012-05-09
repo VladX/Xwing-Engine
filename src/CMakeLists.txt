@@ -69,10 +69,11 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set(link_libraries_list jemalloc uv lua)
 set(link_directories_list ${CMAKE_BINARY_DIR}/libs/jemalloc ${CMAKE_BINARY_DIR}/libs/libuv ${CMAKE_BINARY_DIR}/libs/lua)
-include_directories(${CMAKE_BINARY_DIR}/libs/lua)
+include_directories(${CMAKE_BINARY_DIR}/libs/libuv/libuv/include ${CMAKE_BINARY_DIR}/libs/lua)
 set(exec_filename opentube-server)
 
 file(GLOB source_files *.cpp)
+file(GLOB external_source_files ${CMAKE_CURRENT_SOURCE_DIR}/external/*.cpp)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
@@ -81,5 +82,5 @@ set(link_libraries_list ${link_libraries_list} ${Boost_LIBRARIES})
 
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${link_directories_list})
-add_executable(${exec_filename} ${source_files})
+add_executable(${exec_filename} ${source_files} ${external_source_files})
 target_link_libraries(${exec_filename} ${link_libraries_list})

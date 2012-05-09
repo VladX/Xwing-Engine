@@ -23,7 +23,7 @@
 #include <vector>
 #include <stack>
 #include <queue>
-#include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <string>
 #include <iostream>
@@ -47,12 +47,13 @@
 #include <string.h>
 #endif
 #include "common_types.hpp"
-#include "common_defines.hpp"
+#include "common_definitions.hpp"
 #include "common_functions.hpp"
 #include "allocator.hpp"
 #include "config.hpp"
 #include "static_memory_pool.hpp"
 #include "logger.hpp"
+#include "external.hpp"
 using namespace boost::locale;
 using namespace std;
 

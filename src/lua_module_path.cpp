@@ -66,7 +66,7 @@ static int path_absolute (lua_State * L)
 		lua_pushstring(L, e.what());
 		return 2;
 	}
-	lua_pushstring(L, p.c_str());
+	lua_pushstring(L, p.string().c_str());
 	return 1;
 }
 
@@ -83,7 +83,7 @@ static int path_current (lua_State * L)
 		lua_pushstring(L, e.what());
 		return 2;
 	}
-	lua_pushstring(L, p.c_str());
+	lua_pushstring(L, p.string().c_str());
 	return 1;
 }
 
@@ -101,7 +101,7 @@ static int path_canonical (lua_State * L)
 		lua_pushstring(L, e.what());
 		return 2;
 	}
-	lua_pushstring(L, p.c_str());
+	lua_pushstring(L, p.string().c_str());
 	return 1;
 }
 
@@ -147,7 +147,7 @@ static int path_basename (lua_State * L)
 {
 	const char * name = luaL_checkstring(L, 1);
 	path p(name);
-	lua_pushstring(L, p.filename().c_str());
+	lua_pushstring(L, p.filename().string().c_str());
 	return 1;
 }
 
@@ -155,7 +155,7 @@ static int path_parent (lua_State * L)
 {
 	const char * name = luaL_checkstring(L, 1);
 	path p(name);
-	lua_pushstring(L, p.remove_filename().c_str());
+	lua_pushstring(L, p.remove_filename().string().c_str());
 	return 1;
 }
 
@@ -163,7 +163,7 @@ static int path_ext (lua_State * L)
 {
 	const char * name = luaL_checkstring(L, 1);
 	path p(name);
-	lua_pushstring(L, p.extension().c_str());
+	lua_pushstring(L, p.extension().string().c_str());
 	return 1;
 }
 
@@ -174,7 +174,7 @@ static int path_join (lua_State * L)
 	path p(parent);
 	for (int i = 2; (name = luaL_optstring(L, i, 0)); i++)
 		p /= name;
-	lua_pushstring(L, p.c_str());
+	lua_pushstring(L, p.string().c_str());
 	return 1;
 }
 

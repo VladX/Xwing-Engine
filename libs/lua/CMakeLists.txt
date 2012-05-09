@@ -56,7 +56,6 @@ set(SOURCES
            lobject.c
            lstring.c
 )
-set(LINK_LIBS m)
 
 add_definitions(-DLUA_COMPAT_ALL)
 

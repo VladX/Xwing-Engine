@@ -43,13 +43,13 @@ private:
 	struct memblock_header * mem;
 	size_t mem_size;
 	
-	void add_new_memblock() throw (std::bad_alloc);
+	void add_new_memblock();
 	
 public:
 	StaticMemoryPool ();
-	T * allocate () throw (std::bad_alloc);
-	T * allocate (size_t) throw (std::bad_alloc) { return allocate(); };
-	T * allocate (size_t, const T *) throw (std::bad_alloc) { return allocate(); };
+	T * allocate ();
+	T * allocate (size_t) { return allocate(); };
+	T * allocate (size_t, const T *) { return allocate(); };
 	void deallocate (T * ptr);
 	void deallocate (T * ptr, size_t) { deallocate(ptr); };
 	void free_unused ();
@@ -57,7 +57,7 @@ public:
 };
 
 template<typename T, size_t reserved_blocks>
-inline void StaticMemoryPool<T, reserved_blocks>::add_new_memblock() throw (std::bad_alloc)
+inline void StaticMemoryPool<T, reserved_blocks>::add_new_memblock()
 {
 	struct memblock_header * tmp = mem;
 	mem = (struct memblock_header *) opentube::allocator.allocate(sizeof(struct memblock_header) + (sizeof(struct block) * reserved_blocks));
@@ -86,7 +86,7 @@ StaticMemoryPool<T, reserved_blocks>::StaticMemoryPool()
 }
 
 template<typename T, size_t reserved_blocks>
-inline T * StaticMemoryPool<T, reserved_blocks>::allocate () throw (std::bad_alloc)
+inline T * StaticMemoryPool<T, reserved_blocks>::allocate ()
 {
 	if (!free_list)
 		add_new_memblock();
@@ -147,7 +147,7 @@ void StaticMemoryPool<T, reserved_blocks>::free_unused ()
 					if (b->next)
 						b->next->prev = b->prev;
 				}
-			opentube::allocator.deallocate(tmp);
+			opentube::allocator.deallocate((char *) tmp);
 			tmp = p;
 			ndeallocated++;
 		}
@@ -163,7 +163,7 @@ StaticMemoryPool<T, reserved_blocks>::~StaticMemoryPool()
 	{
 		tmp = m;
 		m = m->next;
-		opentube::allocator.deallocate(tmp);
+		opentube::allocator.deallocate((char *) tmp);
 	}
 }
 

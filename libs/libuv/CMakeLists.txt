@@ -148,9 +148,7 @@ else(WIN32)
  set(LINK_LIBS ${LINK_LIBS} m)
  include_directories(libuv/src/unix/ev/)
  set(SOURCES ${SOURCES}
-             libuv/src/unix/async.c
              libuv/src/unix/cares.c
-             libuv/src/unix/check.c
              libuv/src/unix/core.c
              libuv/src/unix/dl.c
              libuv/src/unix/eio/ecb.h
@@ -158,20 +156,16 @@ else(WIN32)
              libuv/src/unix/eio/xthread.h
              libuv/src/unix/error.c
              libuv/src/unix/ev/ev.c
+             libuv/src/unix/ev/event.h
              libuv/src/unix/ev/ev_vars.h
              libuv/src/unix/ev/ev_wrap.h
-             libuv/src/unix/ev/event.h
              libuv/src/unix/fs.c
-             libuv/src/unix/idle.c
              libuv/src/unix/internal.h
-             libuv/src/unix/loop.c
              libuv/src/unix/pipe.c
-             libuv/src/unix/prepare.c
              libuv/src/unix/process.c
              libuv/src/unix/stream.c
              libuv/src/unix/tcp.c
              libuv/src/unix/thread.c
-             libuv/src/unix/timer.c
              libuv/src/unix/tty.c
              libuv/src/unix/udp.c
              libuv/src/unix/uv-eio.c
@@ -184,8 +178,6 @@ if(LINUX)
  set(SOURCES ${SOURCES}
              libuv/src/unix/linux/core.c
              libuv/src/unix/linux/inotify.c
-             libuv/src/unix/linux/syscalls.c
-             libuv/src/unix/linux/syscalls.h
  )
  add_definitions(-DEV_CONFIG_H="config_linux.h" -DEIO_CONFIG_H="config_linux.h")
  set(LINK_LIBS ${LINK_LIBS} rt dl)
@@ -197,7 +189,7 @@ if(OSX)
              libuv/src/unix/darwin.c
              libuv/src/unix/kqueue.c
  )
- add_definitions(-D_DARWIN_USE_64_BIT_INODE=1 -DEV_CONFIG_H="config_darwin.h" -DEIO_CONFIG_H="config_darwin.h")
+ add_definitions(-DEV_CONFIG_H="config_darwin.h" -DEIO_CONFIG_H="config_darwin.h")
 endif(OSX)
 
 if(BSD)

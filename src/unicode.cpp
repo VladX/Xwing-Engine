@@ -17,40 +17,30 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGGER_H_
-#define __LOGGER_H_ 1
-
-#include "common.hpp"
-
-class Logger
-{
-private:
-	std::ostream * out;
-	std::ostream * err;
-	
-	void print_level (size_t, std::ostream &, bool);
-	void print_time (std::ostream &);
-	
-public:
-	bool osyslog;
-	bool ostdout;
-	
-	Logger () : out(&std::cout), err(&std::cerr), osyslog(true), ostdout(false) {};
-	char * system_last_error ();
-	std::ostream & notice ();
-	std::ostream & error ();
-	std::ostream & error (std::ostream &);
-	std::ostream & critical ();
-	std::ostream & critical (std::ostream &);
-	std::ostream & debug (const char *, int);
-	std::ostream & debug (std::ostream &, const char *, int);
-	void syslog (std::string, int);
-	void set_ostream (std::ostream & strm_out, std::ostream & strm_err);
-};
-
-namespace opentube
-{
-	extern Logger logger;
-};
-
+#include "unicode.hpp"
+#ifdef WIN32
+#include <windows.h>
 #endif
+
+namespace unicode
+{
+
+#ifdef WIN32
+string utf16_to_utf8 (wstring & ws)
+{
+	int bufsize = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, 0, 0, 0, 0);
+	if (bufsize == 0)
+		bufsize = ws.length() * 2;
+	string out;
+	char * buf = new char[bufsize];
+	bufsize = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, buf, bufsize, 0, 0);
+	if (bufsize)
+		out = buf;
+	else
+		out = "?";
+	delete[] buf;
+	return out;
+}
+#endif
+
+};

@@ -27,6 +27,8 @@ class Config
 public:
 	uint16_t port;
 	std::string host;
+	std::string user;
+	std::string group;
 	
 	void load (std::vector<std::string> & config_files);
 };

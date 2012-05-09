@@ -36,6 +36,14 @@ void Logger::set_ostream (ostream & strm_out, ostream & strm_err)
 	err = &strm_err;
 }
 
+void Logger::print_time (ostream & err)
+{
+	const time_t curtime = time(0);
+	char buf[32];
+	strftime(buf, sizeof(buf), "%d/%m/%y %H:%M:%S", localtime(&curtime));
+	err << buf << ' ';
+}
+
 void Logger::print_level (size_t id, ostream & ostrm, bool colorize)
 {
 	static const char * const names[] = {"Notice", "Error", "Critical"};
@@ -67,6 +75,40 @@ void Logger::print_level (size_t id, ostream & ostrm, bool colorize)
 		ostrm << "\x1b[0;0;0m ";
 	else
 		ostrm << ' ';
+#endif
+}
+
+char * Logger::system_last_error ()
+{
+#ifdef WIN32
+	DWORD lasterror = GetLastError();
+	LPCWCH lpvMessageBuffer = 0;
+	static char utf8_str[256];
+	int bufsize;
+	char * ret = utf8_str;
+	
+	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, 0, lasterror, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),  (LPWSTR) &lpvMessageBuffer, 0, 0);
+	bufsize = WideCharToMultiByte(CP_UTF8, 0, lpvMessageBuffer, -1, 0, 0, 0, 0);
+	
+	if (bufsize == 0 || bufsize > sizeof(utf8_str))
+		bufsize = sizeof(utf8_str);
+	if (WideCharToMultiByte(CP_UTF8, 0, lpvMessageBuffer, -1, utf8_str, bufsize, 0, 0) == 0)
+		ret = "error";
+	
+	LocalFree((void *) lpvMessageBuffer);
+	
+	bufsize = (int) strlen(ret) - 1;
+	while (isspace(ret[bufsize]))
+	{
+		ret[bufsize] = '\0';
+		bufsize--;
+	}
+	
+	SetLastError(lasterror);
+	
+	return ret;
+#else
+	return strerror(getlasterror());
 #endif
 }
 
@@ -102,12 +144,16 @@ ostream & Logger::critical ()
 
 ostream & Logger::error (ostream & err)
 {
+	if (err != cerr)
+		print_time(err);
 	print_level(1, err, err == cerr);
 	return err;
 }
 
 ostream & Logger::critical (ostream & err)
 {
+	if (err != cerr)
+		print_time(err);
 	print_level(2, err, err == cerr);
 	return err;
 }

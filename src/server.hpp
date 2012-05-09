@@ -17,40 +17,30 @@
  * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGGER_H_
-#define __LOGGER_H_ 1
+#ifndef __SERVER_H_
+#define __SERVER_H_ 1
 
 #include "common.hpp"
+#include "http.hpp"
+#include <uv.h>
 
-class Logger
+typedef struct
 {
-private:
-	std::ostream * out;
-	std::ostream * err;
-	
-	void print_level (size_t, std::ostream &, bool);
-	void print_time (std::ostream &);
-	
-public:
-	bool osyslog;
-	bool ostdout;
-	
-	Logger () : out(&std::cout), err(&std::cerr), osyslog(true), ostdout(false) {};
-	char * system_last_error ();
-	std::ostream & notice ();
-	std::ostream & error ();
-	std::ostream & error (std::ostream &);
-	std::ostream & critical ();
-	std::ostream & critical (std::ostream &);
-	std::ostream & debug (const char *, int);
-	std::ostream & debug (std::ostream &, const char *, int);
-	void syslog (std::string, int);
-	void set_ostream (std::ostream & strm_out, std::ostream & strm_err);
-};
+	//http_client_t http;
+	uv_tcp_t handle;
+	uv_write_t wr;
+	uv_shutdown_t req;
+	char * data;
+	size_t data_size;
+	size_t data_real_size;
+	static_string uri;
+	unordered_map<static_string, protocol_HTTP::HttpHeader *> headers;
+	enum protocol_HTTP::http_method http_method;
+	uchar http_version;
+} client_t;
 
-namespace opentube
-{
-	extern Logger logger;
-};
+void server_init ();
+
+namespace protocol_HTTP { void http_handler (client_t *, size_t, uv_buf_t); };
 
 #endif
