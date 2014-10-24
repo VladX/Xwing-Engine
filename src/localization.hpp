@@ -17,36 +17,24 @@
  * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "common.hpp"
-#include "server.hpp"
-#include "process.hpp"
-#include "cmdline_parser.hpp"
+#ifndef __LOCALIZATION_H_
+#define __LOCALIZATION_H_ 1
 
-char ** argv;
-int argc;
+#include "external.hpp"
 
-static void config () {
-	try {
-		CmdlineParser parser(argc, argv);
-		xwing::config.load(parser.get_files());
-	}
-	catch (int e) {
-		process_exit(e);
-	}
-	catch (const char * err) {
-		LOG_CRITICAL(gettext(err));
-	}
-	catch (exception & e) {
-		LOG_CRITICAL(e.what());
-	}
+namespace localization {
+
+	void setup_locale ();
+	const char * translate (const char *);
+	const char * translate (const uint64_t);
+
+};
+
+#define gettext(x) localization::translate(x)
+
+inline const char * operator "" _tr (const char * str, const size_t size) {
+	const char * tr = localization::translate(EXTERNAL_CONSTEXPR_CITYHASH64(str, size));
+	return (tr) ? tr : str;
 }
 
-int main (int argc, char ** argv) {
-	::argc = argc;
-	::argv = argv;
-	localization::setup_locale();
-	config();
-	process_init();
-	server_init();
-	return 0;
-}
+#endif

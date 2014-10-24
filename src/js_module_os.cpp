@@ -17,38 +17,40 @@
  * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __COMMON_H_
-#define __COMMON_H_ 1
-
-#include <vector>
-#include <algorithm>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
+#include "js.hpp"
 #include "config.h"
-#ifdef HAVE_CPP0X_STYLE_HEADERS
-#include <cstdlib>
-#include <cstdint>
-#include <cctype>
-#include <cstring>
-#else
-#include <stdlib.h>
-#include <stdint.h>
-#include <ctype.h>
-#include <string.h>
-#endif
-#include "common_types.hpp"
-#include "common_definitions.hpp"
-#include "common_functions.hpp"
-#include "allocator.hpp"
-#include "localization.hpp"
-#include "config.hpp"
-#include "logger.hpp"
-#include "external.hpp"
-#include "static_memory_pool.hpp"
-#include "hash_table.hpp"
-using namespace std;
 
+namespace JS {
+
+namespace modules {
+
+bool define_os (JSContext * cx, HandleObject global_obj) {
+	RootedObject obj(cx, JS_DefineObject(cx, global_obj, "os", nullptr, NullPtr(), JSPROP_READONLY));
+	if (!obj)
+		return false;
+#ifdef LINUX
+	JS_DefineProperty(cx, obj, "linux", 1, JSPROP_READONLY);
+#else
+	JS_DefineProperty(cx, obj, "linux", 0, JSPROP_READONLY);
 #endif
+#ifdef WIN32
+	JS_DefineProperty(cx, obj, "windows", 1, JSPROP_READONLY);
+#else
+	JS_DefineProperty(cx, obj, "windows", 0, JSPROP_READONLY);
+#endif
+#ifdef OSX
+	JS_DefineProperty(cx, obj, "osx", 1, JSPROP_READONLY);
+#else
+	JS_DefineProperty(cx, obj, "osx", 0, JSPROP_READONLY);
+#endif
+#ifdef BSD
+	JS_DefineProperty(cx, obj, "bsd", 1, JSPROP_READONLY);
+#else
+	JS_DefineProperty(cx, obj, "bsd", 0, JSPROP_READONLY);
+#endif
+	return true;
+}
+
+};
+
+};

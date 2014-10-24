@@ -17,36 +17,33 @@
  * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef __PATH_H_
+#define __PATH_H_ 1
+
 #include "common.hpp"
-#include "server.hpp"
-#include "process.hpp"
-#include "cmdline_parser.hpp"
 
-char ** argv;
-int argc;
+class path {
+private:
+#ifdef WIN32
+	static constexpr const char * default_separator = "\\";
+#else
+	static constexpr const char * default_separator = "/";
+#endif
+	bool absolute = false;
+protected:
+	vector<string> components;
+public:
+	path (const string &);
+	
+	string serialize () const;
+	
+	void append (const string &);
+	
+	static path current ();
+	
+	bool isdir ();
+	
+	bool isfile ();
+};
 
-static void config () {
-	try {
-		CmdlineParser parser(argc, argv);
-		xwing::config.load(parser.get_files());
-	}
-	catch (int e) {
-		process_exit(e);
-	}
-	catch (const char * err) {
-		LOG_CRITICAL(gettext(err));
-	}
-	catch (exception & e) {
-		LOG_CRITICAL(e.what());
-	}
-}
-
-int main (int argc, char ** argv) {
-	::argc = argc;
-	::argv = argv;
-	localization::setup_locale();
-	config();
-	process_init();
-	server_init();
-	return 0;
-}
+#endif

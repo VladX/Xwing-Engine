@@ -17,36 +17,45 @@
  * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "common.hpp"
-#include "server.hpp"
-#include "process.hpp"
-#include "cmdline_parser.hpp"
+#ifndef __JS_H_
+#define __JS_H_ 1
 
-char ** argv;
-int argc;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
 
-static void config () {
-	try {
-		CmdlineParser parser(argc, argv);
-		xwing::config.load(parser.get_files());
-	}
-	catch (int e) {
-		process_exit(e);
-	}
-	catch (const char * err) {
-		LOG_CRITICAL(gettext(err));
-	}
-	catch (exception & e) {
-		LOG_CRITICAL(e.what());
-	}
-}
+#include <jsapi.h>
 
-int main (int argc, char ** argv) {
-	::argc = argc;
-	::argv = argv;
-	localization::setup_locale();
-	config();
-	process_init();
-	server_init();
-	return 0;
-}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+namespace JS {
+
+namespace modules {
+
+bool define_path (JSContext *, HandleObject);
+bool define_os (JSContext *, HandleObject);
+
+};
+
+class MainInstance {
+private:
+	static void error_reporter (JSContext *, const char *, JSErrorReport *) throw();
+	
+public:
+	static JSRuntime * rt;
+	static JSContext * cx;
+	static const size_t stack_chunk_size;
+	
+	static void init ();
+	static JSObject * new_global ();
+	static bool run_file (HandleObject, const char * filename);
+	static void exit ();
+};
+
+};
+
+#endif

@@ -1,104 +1,107 @@
 /*
- * This file is part of Opentube - Open video hosting engine
+ * This file is part of Xwing - Open video hosting engine
  *
- * Copyright (C) 2011 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
+ * Copyright (C) 2014 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
  *
- * Opentube is free software; you can redistribute it and/or modify
+ * Xwing is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
- * Opentube is distributed in the hope that it will be useful,
+ * Xwing is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "server.hpp"
-using namespace protocol_HTTP;
+#include "js.hpp"
+#include "fcgi.hpp"
+
+typedef struct {
+	unsigned char buf[SERVER_SMALL_CHUNK_SIZE];
+} small_chunk_t;
+
+typedef struct {
+	char buf[SERVER_LARGE_CHUNK_SIZE];
+} large_chunk_t;
 
 static uv_loop_t * loop;
-static uv_tcp_t tcpServer;
-static StaticMemoryPool<client_t, SERVER_PREALLOC_CLIENT_T> server_pool;
+static StaticMemoryPool<transfer_t, SERVER_PREALLOC_TRANSFER_T> server_pool;
+static StaticMemoryPool<small_chunk_t, SERVER_PREALLOC_TRANSFER_T> small_pool;
+static StaticMemoryPool<large_chunk_t, SERVER_PREALLOC_LARGE_CHUNKS> large_pool;
 
-static uv_buf_t read_alloc (uv_handle_t * handle, size_t suggested_size)
-{
-	client_t * client = reinterpret_cast<client_t *>(handle->data);
-	if (unlikely((client->data_real_size - client->data_size) < suggested_size))
-	{
-		client->data_real_size = client->data_size + suggested_size;
-		client->data = opentube::allocator.reallocate(client->data, client->data_real_size);
+static void read_alloc (uv_handle_t *, size_t, uv_buf_t * buf) {
+	try {
+		buf->base = (char *) small_pool.allocate(); // TODO: Выделять из большого пула, если заголовки прочитаны
+		buf->len = sizeof(small_chunk_t);
 	}
-	return uv_buf_init(client->data + client->data_size, suggested_size);
+	catch (bad_alloc) {
+		buf->base = 0;
+		buf->len = 0;
+	}
 }
 
-static void after_shutdown (uv_shutdown_t * req, int status)
-{
-	
-}
-
-static void after_read (uv_stream_t * handle, ssize_t nread, uv_buf_t buf)
-{
-	DEBUG_PRINT_3("read " << nread << " bytes");
-	client_t * client = reinterpret_cast<client_t *>(handle->data);
-	if (nread < 0)
-	{
-		if (uv_last_error(loop).code != UV_EOF)
-			LOG_ERROR("read: " << uv_strerror(uv_last_error(loop)));
+static void after_read (uv_stream_t * handle, ssize_t nread, const uv_buf_t * buf) {
+	transfer_t * transfer = reinterpret_cast<transfer_t *>(handle->data);
+	if (unlikely(nread < 0)) {
+		if (unlikely(nread != UV_EOF))
+			LOG_ERROR("read: " << uv_strerror(nread));
 		
-		opentube::allocator.deallocate(client->data);
-		uv_shutdown(&client->req, handle, after_shutdown);
+		DEBUG_PRINT_3("Deallocating all transfer buffers: " << (void *) transfer);
+		uv_read_stop(handle);
+		if (buf->base)
+			small_pool.deallocate((small_chunk_t *) buf->base);
+		server_pool.deallocate(transfer);
 		return;
 	}
-	client->data_size += nread;
-	assert(nread >= 0);
-	http_handler(client, nread, buf);
+	DEBUG_PRINT_3("Reading " << nread << " bytes from transfer: " << (void *) transfer);
+	if (likely(nread))
+		fcgi_process(transfer, buf->base, nread);
+	if (likely(buf->base))
+		small_pool.deallocate((small_chunk_t *) buf->base);
 }
 
-static void on_connection (uv_stream_t * server, int status)
-{
-	if (unlikely(status))
-	{
-		LOG_ERROR("connect: " << uv_strerror(uv_last_error(loop)));
+static void on_connection (uv_stream_t * server, int status) {
+	if (unlikely(status)) {
+		LOG_ERROR("Connect: " << uv_strerror(status));
 		return;
 	}
 	
-	client_t * client = server_pool.allocate();
-	uv_tcp_t * stream = &client->handle;
+	transfer_t * transfer = server_pool.allocate();
+	uv_tcp_t * stream = &transfer->handle;
+	memset(transfer, 0, sizeof(* transfer));
+	new(&transfer->requests) vector<void *>;
+	stream->data = transfer;
 	
-	if (unlikely(uv_tcp_init(loop, stream)))
-	{
-		LOG_ERROR("uv_tcp_init: " << uv_strerror(uv_last_error(loop)));
-		server_pool.deallocate(client);
+	DEBUG_PRINT_2("New connection received, transfer buffer was allocated from a pool: " << reinterpret_cast<void *>(transfer));
+	
+	int ret = uv_tcp_init(loop, stream);
+	if (unlikely(ret)) {
+		LOG_ERROR("uv_tcp_init: " << uv_strerror(ret));
+		server_pool.deallocate(transfer);
 		return;
 	}
 	
-	stream->data = client;
-	client->data = 0;
-	client->data_size = 0;
-	client->data_real_size = 0;
-	new(&client->headers) unordered_map<static_string, HttpHeader *>;
-	
-	if (uv_accept(server, reinterpret_cast<uv_stream_t *>(stream)))
-	{
-		LOG_ERROR("accept: " << uv_strerror(uv_last_error(loop)));
-		server_pool.deallocate(client);
+	ret = uv_accept(server, reinterpret_cast<uv_stream_t *>(stream));
+	if (ret) {
+		LOG_ERROR("Accept: " << uv_strerror(ret));
+		server_pool.deallocate(transfer);
 		return;
 	}
 	
-	if (uv_read_start(reinterpret_cast<uv_stream_t *>(stream), read_alloc, after_read))
-	{
-		LOG_ERROR("uv_read_start: " << uv_strerror(uv_last_error(loop)));
-		server_pool.deallocate(client);
+	ret = uv_read_start(reinterpret_cast<uv_stream_t *>(stream), read_alloc, after_read);
+	if (ret) {
+		LOG_ERROR("uv_read_start: " << uv_strerror(ret));
+		server_pool.deallocate(transfer);
 		return;
 	}
 }
 
-static bool is_valid_ipv4_addr (const char * addr)
-{
+static bool is_valid_ipv4_addr (const char * addr) {
 	long n;
 	char * a;
 	n = strtol(addr, &a, 10);
@@ -131,31 +134,59 @@ static bool is_valid_ipv4_addr (const char * addr)
 	return true;
 }
 
-void tcp_setup ()
-{
-	if (uv_tcp_init(loop, &tcpServer))
-		LOG_CRITICAL("uv_tcp_init: " << uv_strerror(uv_last_error(loop)));
-	
-	if (is_valid_ipv4_addr(opentube::config.host.c_str()))
-	{
-		struct sockaddr_in addr4 = uv_ip4_addr(opentube::config.host.c_str(), opentube::config.port);
-		if (uv_tcp_bind(&tcpServer, addr4))
-			LOG_CRITICAL("bind: " << uv_strerror(uv_last_error(loop)));
+void tcp_setup () {
+	int ret;
+	if (xwing::config.port == 0) {
+		static uv_pipe_t pipe;
+		ret = uv_pipe_init(loop, &pipe, 0);
+		if (ret)
+			LOG_CRITICAL("uv_pipe_init: " << uv_strerror(ret));
+#ifdef WIN32
+		ret = uv_pipe_bind(&pipe, string("\\\\.\\pipe\\" + xwing::config.host).c_str());
+#else
+		unlink(xwing::config.host.c_str());
+		ret = uv_pipe_bind(&pipe, xwing::config.host.c_str());
+#endif
+		if (ret)
+			LOG_CRITICAL("bind(" << xwing::config.host << "): " << uv_strerror(ret));
+		chmod(xwing::config.host.c_str(), xwing::config.sockperm);
+		ret = uv_listen((uv_stream_t *) &pipe, SOMAXCONN, on_connection);
+		if (ret)
+			LOG_CRITICAL("listen: " << uv_strerror(ret));
 	}
-	else
-	{
-		struct sockaddr_in6 addr6 = uv_ip6_addr(opentube::config.host.c_str(), opentube::config.port);
-		if (uv_tcp_bind6(&tcpServer, addr6))
-			LOG_CRITICAL("bind: " << uv_strerror(uv_last_error(loop)));
+	else {
+		const struct sockaddr * addrptr;
+		static uv_tcp_t tcpServer;
+		ret = uv_tcp_init(loop, &tcpServer);
+		if (ret)
+			LOG_CRITICAL("uv_tcp_init: " << uv_strerror(ret));
+		if (is_valid_ipv4_addr(xwing::config.host.c_str())) {
+			struct sockaddr_in addr;
+			ret = uv_ip4_addr(xwing::config.host.c_str(), xwing::config.port, &addr);
+			if (ret)
+				LOG_CRITICAL(uv_strerror(ret));
+			addrptr = (const struct sockaddr *) &addr;
+		}
+		else {
+			struct sockaddr_in6 addr;
+			ret = uv_ip6_addr(xwing::config.host.c_str(), xwing::config.port, &addr);
+			if (ret)
+				LOG_CRITICAL(uv_strerror(ret));
+			addrptr = (const struct sockaddr *) &addr;
+		}
+		ret = uv_tcp_bind(&tcpServer, addrptr, 0);
+		if (ret)
+			LOG_CRITICAL("bind(" << xwing::config.host << ":" << xwing::config.port << "): " << uv_strerror(ret));
+		ret = uv_listen((uv_stream_t *) &tcpServer, SOMAXCONN, on_connection);
+		if (ret)
+			LOG_CRITICAL("listen(" << xwing::config.host << ":" << xwing::config.port << "): " << uv_strerror(ret));
 	}
-	
-	if (uv_listen((uv_stream_t *) &tcpServer, SOMAXCONN, on_connection))
-		LOG_CRITICAL("listen: " << uv_strerror(uv_last_error(loop)));
 }
 
-void server_init ()
-{
+void server_init () {
+	JS::MainInstance::init();
 	loop = uv_default_loop();
 	tcp_setup();
-	uv_run(loop);
+	uv_run(loop, UV_RUN_DEFAULT);
+	uv_loop_delete(loop);
 }

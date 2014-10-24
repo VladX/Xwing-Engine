@@ -17,36 +17,15 @@
  * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "common.hpp"
+#ifndef __FCGI_H_
+#define __FCGI_H_ 1
+
 #include "server.hpp"
-#include "process.hpp"
-#include "cmdline_parser.hpp"
 
-char ** argv;
-int argc;
+typedef struct {
+	int x;
+} request_t;
 
-static void config () {
-	try {
-		CmdlineParser parser(argc, argv);
-		xwing::config.load(parser.get_files());
-	}
-	catch (int e) {
-		process_exit(e);
-	}
-	catch (const char * err) {
-		LOG_CRITICAL(gettext(err));
-	}
-	catch (exception & e) {
-		LOG_CRITICAL(e.what());
-	}
-}
+void fcgi_process (transfer_t *, char *, size_t);
 
-int main (int argc, char ** argv) {
-	::argc = argc;
-	::argv = argv;
-	localization::setup_locale();
-	config();
-	process_init();
-	server_init();
-	return 0;
-}
+#endif

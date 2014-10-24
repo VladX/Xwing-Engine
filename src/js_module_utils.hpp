@@ -17,36 +17,27 @@
  * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "common.hpp"
-#include "server.hpp"
-#include "process.hpp"
-#include "cmdline_parser.hpp"
+#ifndef __JS_MODULE_UTILS_H_
+#define __JS_MODULE_UTILS_H_ 1
 
-char ** argv;
-int argc;
+namespace JS {
 
-static void config () {
-	try {
-		CmdlineParser parser(argc, argv);
-		xwing::config.load(parser.get_files());
-	}
-	catch (int e) {
-		process_exit(e);
-	}
-	catch (const char * err) {
-		LOG_CRITICAL(gettext(err));
-	}
-	catch (exception & e) {
-		LOG_CRITICAL(e.what());
-	}
-}
+namespace modules {
 
-int main (int argc, char ** argv) {
-	::argc = argc;
-	::argv = argv;
-	localization::setup_locale();
-	config();
-	process_init();
-	server_init();
-	return 0;
-}
+#define JS_ENFORCE_ARGS_NUMBER(cx, args, expected) \
+	if (args.length() != expected) {\
+		JS_ReportError(cx, "wrong number of arguments, expected %d, passed %d", expected, args.length());\
+		return false;\
+	}
+
+#define JS_MINIMUM_ARGS_NUMBER(cx, args, expected) \
+	if (args.length() < expected) {\
+		JS_ReportError(cx, "minimum number of arguments - %d, passed %d", expected, args.length());\
+		return false;\
+	}
+
+};
+
+};
+
+#endif

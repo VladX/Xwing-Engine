@@ -1,20 +1,20 @@
 /*
- * This file is part of Opentube - Open video hosting engine
+ * This file is part of Xwing - Open video hosting engine
  *
- * Copyright (C) 2011 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
+ * Copyright (C) 2014 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
  *
- * Opentube is free software; you can redistribute it and/or modify
+ * Xwing is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
- * Opentube is distributed in the hope that it will be useful,
+ * Xwing is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef __STATIC_MEMORY_POOL_H_
@@ -23,15 +23,12 @@
 #include "common.hpp"
 
 template<typename T, size_t reserved_blocks>
-class StaticMemoryPool : public std::allocator<T>
-{
+class StaticMemoryPool {
 private:
-	struct memblock_header
-	{
+	struct memblock_header {
 		struct memblock_header * next;
 	};
-	struct block
-	{
+	struct block {
 		/* Don't change this struct */
 		struct block * next;
 		struct block * prev;
@@ -57,17 +54,15 @@ public:
 };
 
 template<typename T, size_t reserved_blocks>
-inline void StaticMemoryPool<T, reserved_blocks>::add_new_memblock()
-{
+inline void StaticMemoryPool<T, reserved_blocks>::add_new_memblock() {
 	struct memblock_header * tmp = mem;
-	mem = (struct memblock_header *) opentube::allocator.allocate(sizeof(struct memblock_header) + (sizeof(struct block) * reserved_blocks));
+	mem = (struct memblock_header *) xwing::allocator.allocate(sizeof(struct memblock_header) + (sizeof(struct block) * reserved_blocks));
 	mem->next = tmp;
 	free_list = (struct block *) (((uchar *) mem) + sizeof(struct memblock_header));
 	size_t i;
 	free_list[0].next = &free_list[1];
 	free_list[0].prev = 0;
-	for (i = 1; i < reserved_blocks - 1; i++)
-	{
+	for (i = 1; i < reserved_blocks - 1; i++) {
 		free_list[i].next = &free_list[i + 1];
 		free_list[i].prev = &free_list[i - 1];
 	}
@@ -77,8 +72,7 @@ inline void StaticMemoryPool<T, reserved_blocks>::add_new_memblock()
 }
 
 template<typename T, size_t reserved_blocks>
-StaticMemoryPool<T, reserved_blocks>::StaticMemoryPool()
-{
+StaticMemoryPool<T, reserved_blocks>::StaticMemoryPool() {
 	allocated_list = 0;
 	mem = 0;
 	mem_size = 0;
@@ -86,8 +80,7 @@ StaticMemoryPool<T, reserved_blocks>::StaticMemoryPool()
 }
 
 template<typename T, size_t reserved_blocks>
-inline T * StaticMemoryPool<T, reserved_blocks>::allocate ()
-{
+inline T * StaticMemoryPool<T, reserved_blocks>::allocate () {
 	if (!free_list)
 		add_new_memblock();
 	struct block * tmp = allocated_list;
@@ -103,8 +96,7 @@ inline T * StaticMemoryPool<T, reserved_blocks>::allocate ()
 }
 
 template<typename T, size_t reserved_blocks>
-inline void StaticMemoryPool<T, reserved_blocks>::deallocate (T * ptr)
-{
+inline void StaticMemoryPool<T, reserved_blocks>::deallocate (T * ptr) {
 	struct block * tmp = (struct block *) (((uchar *) ptr) - 2 * sizeof(void *));
 	if (tmp->prev)
 		tmp->prev->next = tmp->next;
@@ -118,13 +110,11 @@ inline void StaticMemoryPool<T, reserved_blocks>::deallocate (T * ptr)
 }
 
 template<typename T, size_t reserved_blocks>
-void StaticMemoryPool<T, reserved_blocks>::free_unused ()
-{
+void StaticMemoryPool<T, reserved_blocks>::free_unused () {
 	struct memblock_header * m = mem, * tmp = 0, * p = 0;
 	struct block * b;
 	size_t ndeallocated = 1; // 1 is because we should keep one mem block for later use
-	while (m && ndeallocated < mem_size)
-	{
+	while (m && ndeallocated < mem_size) {
 		for (b = allocated_list; b; b = b->next)
 			if ((uchar *) b > (uchar *) m && (uchar *) b < ((uchar *) m) + sizeof(struct memblock_header) + (sizeof(struct block) * reserved_blocks))
 				break;
@@ -135,11 +125,9 @@ void StaticMemoryPool<T, reserved_blocks>::free_unused ()
 		p = tmp;
 		tmp = m;
 		m = m->next;
-		if (!b)
-		{
+		if (!b) {
 			for (b = free_list; b; b = b->next)
-				if ((uchar *) b > (uchar *) tmp && (uchar *) b < ((uchar *) tmp) + sizeof(struct memblock_header) + (sizeof(struct block) * reserved_blocks))
-				{
+				if ((uchar *) b > (uchar *) tmp && (uchar *) b < ((uchar *) tmp) + sizeof(struct memblock_header) + (sizeof(struct block) * reserved_blocks)) {
 					if (b->prev)
 						b->prev->next = b->next;
 					else
@@ -147,7 +135,7 @@ void StaticMemoryPool<T, reserved_blocks>::free_unused ()
 					if (b->next)
 						b->next->prev = b->prev;
 				}
-			opentube::allocator.deallocate((char *) tmp);
+			xwing::allocator.deallocate((char *) tmp);
 			tmp = p;
 			ndeallocated++;
 		}
@@ -156,14 +144,12 @@ void StaticMemoryPool<T, reserved_blocks>::free_unused ()
 }
 
 template<typename T, size_t reserved_blocks>
-StaticMemoryPool<T, reserved_blocks>::~StaticMemoryPool()
-{
+StaticMemoryPool<T, reserved_blocks>::~StaticMemoryPool() {
 	struct memblock_header * m = mem, * tmp;
-	while (m)
-	{
+	while (m) {
 		tmp = m;
 		m = m->next;
-		opentube::allocator.deallocate((char *) tmp);
+		xwing::allocator.deallocate((char *) tmp);
 	}
 }
 

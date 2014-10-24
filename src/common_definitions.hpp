@@ -1,20 +1,20 @@
 /*
- * This file is part of Opentube - Open video hosting engine
+ * This file is part of Xwing - Open video hosting engine
  *
- * Copyright (C) 2011 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
+ * Copyright (C) 2014 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
  *
- * Opentube is free software; you can redistribute it and/or modify
+ * Xwing is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
- * Opentube is distributed in the hope that it will be useful,
+ * Xwing is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef __COMMON_DEFINES_H_
@@ -53,59 +53,73 @@
 #define DEBUG_3(X)
 #endif
 
-#define LOG_NOTICE(X) opentube::logger.notice() << X << std::endl
+#define LOG_NOTICE(X) xwing::logger.notice() << X << std::endl
 #define LOG_ERROR(X) { \
-	if (opentube::logger.osyslog) \
-	{ \
+	if (xwing::logger.osyslog) { \
 		std::stringstream buf; \
 		buf << X; \
-		opentube::logger.syslog(buf.str(), 1); \
+		xwing::logger.syslog(buf.str(), 1); \
 	} \
-	if (opentube::logger.ostdout) \
-		opentube::logger.error(cerr) << X << std::endl; \
-	opentube::logger.error() << X << std::endl; \
+	if (xwing::logger.ostdout) \
+		xwing::logger.error(std::cerr) << X << std::endl; \
+	xwing::logger.error() << X << std::endl; \
 }
 #define LOG_CRITICAL(X) { \
-	if (opentube::logger.osyslog) \
-	{ \
+	if (xwing::logger.osyslog) { \
 		std::stringstream buf; \
 		buf << X; \
-		opentube::logger.syslog(buf.str(), 2); \
+		xwing::logger.syslog(buf.str(), 2); \
 	} \
-	if (opentube::logger.ostdout) \
-		opentube::logger.critical(cerr) << X << std::endl; \
-	opentube::logger.critical() << X << std::endl; \
+	if (xwing::logger.ostdout) \
+		xwing::logger.critical(std::cerr) << X << std::endl; \
+	xwing::logger.critical() << X << std::endl; \
 	process_exit(EXIT_FAILURE); \
 }
 #define LOG_CRITICAL_P(X) { \
-	if (opentube::logger.osyslog) \
-	{ \
+	if (xwing::logger.osyslog) { \
 		std::stringstream buf; \
-		buf << X << ": " << opentube::logger.system_last_error(); \
-		opentube::logger.syslog(buf.str(), 2); \
+		buf << X << ": " << xwing::logger.system_last_error(); \
+		xwing::logger.syslog(buf.str(), 2); \
 	} \
-	if (opentube::logger.ostdout) \
-		opentube::logger.critical(cerr) << X << ": " << opentube::logger.system_last_error() << std::endl; \
-	opentube::logger.critical() << X << ": " << opentube::logger.system_last_error() << std::endl; \
+	if (xwing::logger.ostdout) \
+		xwing::logger.critical(std::cerr) << X << ": " << xwing::logger.system_last_error() << std::endl; \
+	xwing::logger.critical() << X << ": " << xwing::logger.system_last_error() << std::endl; \
 	process_exit(EXIT_FAILURE); \
 }
 
 #define DEBUG_PRINT_1(X) DEBUG_1({ \
-	if (opentube::logger.ostdout) \
-		opentube::logger.debug(cout, __FILE__, __LINE__) << X << std::endl; \
-	opentube::logger.debug(__FILE__, __LINE__) << X << std::endl; \
+	if (xwing::logger.ostdout) \
+		xwing::logger.debug(std::cout, __FILE__, __LINE__) << X << std::endl; \
+	xwing::logger.debug(__FILE__, __LINE__) << X << std::endl; \
 })
 #define DEBUG_PRINT_2(X) DEBUG_2({ \
-	if (opentube::logger.ostdout) \
-		opentube::logger.debug(cout, __FILE__, __LINE__) << X << std::endl; \
-	opentube::logger.debug(__FILE__, __LINE__) << X << std::endl; \
+	if (xwing::logger.ostdout) \
+		xwing::logger.debug(std::cout, __FILE__, __LINE__) << X << std::endl; \
+	xwing::logger.debug(__FILE__, __LINE__) << X << std::endl; \
 })
 #define DEBUG_PRINT_3(X) DEBUG_3({ \
-	if (opentube::logger.ostdout) \
-		opentube::logger.debug(cout, __FILE__, __LINE__) << X << std::endl; \
-	opentube::logger.debug(__FILE__, __LINE__) << X << std::endl; \
+	if (xwing::logger.ostdout) \
+		xwing::logger.debug(std::cout, __FILE__, __LINE__) << X << std::endl; \
+	xwing::logger.debug(__FILE__, __LINE__) << X << std::endl; \
 })
 
-#define LAST_ERROR_EXCEPTION(M) boost::system::system_error(getlasterror(), boost::system::get_system_category(), M)
+#ifdef WIN32
+int getlasterror ();
+#else
+#define getlasterror() errno
+#endif
+
+class last_error_exception : public std::exception {
+public:
+	std::string msg;
+	
+	last_error_exception(const std::string info) {
+		msg = strerror(getlasterror());
+		msg += ": ";
+		msg += info;
+	}
+	
+	const char * what() const throw() { return msg.c_str(); }
+};
 
 #endif

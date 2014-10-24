@@ -1,20 +1,20 @@
 /*
- * This file is part of Opentube - Open video hosting engine
+ * This file is part of Xwing - Open video hosting engine
  *
- * Copyright (C) 2011 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
+ * Copyright (C) 2014 - Xpast; http://xpast.me/; <vvladxx@gmail.com>
  *
- * Opentube is free software; you can redistribute it and/or modify
+ * Xwing is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
- * Opentube is distributed in the hope that it will be useful,
+ * Xwing is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Opentube.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Xwing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "common.hpp"
@@ -24,34 +24,38 @@
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 #endif
+#include <time.h>
 
-namespace opentube
-{
+namespace xwing {
 	Logger logger;
 };
 
-void Logger::set_ostream (ostream & strm_out, ostream & strm_err)
-{
+Logger::Logger () {
+	osyslog = true;
+	ostdout = false;
+	set_ostream(cout, cerr);
+#ifdef WIN32
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+}
+
+void Logger::set_ostream (logstream & strm_out, logstream & strm_err) {
 	out = &strm_out;
 	err = &strm_err;
 }
 
-void Logger::print_time (ostream & err)
-{
+void Logger::print_time (logstream & out) {
 	const time_t curtime = time(0);
-	char buf[32];
-	strftime(buf, sizeof(buf), "%d/%m/%y %H:%M:%S", localtime(&curtime));
-	err << buf << ' ';
+	char timebuf[64];
+	out.write(timebuf, strftime(timebuf, sizeof(timebuf), "%c %z ", localtime(&curtime)));
 }
 
-void Logger::print_level (size_t id, ostream & ostrm, bool colorize)
-{
+void Logger::print_level (size_t id, logstream & ostrm, bool colorize) {
 	static const char * const names[] = {"Notice", "Error", "Critical"};
 #ifdef WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #endif
-	if (colorize)
-	{
+	if (colorize) {
 		if (id == 1)
 #ifdef WIN32
 			SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_RED);
@@ -65,7 +69,7 @@ void Logger::print_level (size_t id, ostream & ostrm, bool colorize)
 			ostrm << "\x1b[1;37;41m";
 #endif
 	}
-	ostrm << '[' << translate(names[id]) << ']';
+	ostrm << '[' << gettext(names[id]) << ']';
 #ifdef WIN32
 	if (colorize)
 		SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
@@ -78,13 +82,12 @@ void Logger::print_level (size_t id, ostream & ostrm, bool colorize)
 #endif
 }
 
-char * Logger::system_last_error ()
-{
+char * Logger::system_last_error () {
 #ifdef WIN32
 	DWORD lasterror = GetLastError();
 	LPCWCH lpvMessageBuffer = 0;
 	static char utf8_str[256];
-	int bufsize;
+	size_t bufsize;
 	char * ret = utf8_str;
 	
 	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, 0, lasterror, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),  (LPWSTR) &lpvMessageBuffer, 0, 0);
@@ -93,13 +96,12 @@ char * Logger::system_last_error ()
 	if (bufsize == 0 || bufsize > sizeof(utf8_str))
 		bufsize = sizeof(utf8_str);
 	if (WideCharToMultiByte(CP_UTF8, 0, lpvMessageBuffer, -1, utf8_str, bufsize, 0, 0) == 0)
-		ret = "error";
+		memcpy(ret, "error", 6);
 	
 	LocalFree((void *) lpvMessageBuffer);
 	
 	bufsize = (int) strlen(ret) - 1;
-	while (isspace(ret[bufsize]))
-	{
+	while (isspace(ret[bufsize])) {
 		ret[bufsize] = '\0';
 		bufsize--;
 	}
@@ -112,8 +114,7 @@ char * Logger::system_last_error ()
 #endif
 }
 
-void Logger::syslog (string str, int level)
-{
+void Logger::syslog (string str, int level) {
 #ifdef HAVE_SYSLOG_H
 	if (!osyslog)
 		return;
@@ -127,44 +128,37 @@ void Logger::syslog (string str, int level)
 #endif
 }
 
-ostream & Logger::notice ()
-{
+Logger::logstream & Logger::notice () {
 	return (* out);
 }
 
-ostream & Logger::error ()
-{
+Logger::logstream & Logger::error () {
 	return error(* err);
 }
 
-ostream & Logger::critical ()
-{
+Logger::logstream & Logger::critical () {
 	return critical(* err);
 }
 
-ostream & Logger::error (ostream & err)
-{
+Logger::logstream & Logger::error (logstream & err) {
 	if (err != cerr)
 		print_time(err);
 	print_level(1, err, err == cerr);
 	return err;
 }
 
-ostream & Logger::critical (ostream & err)
-{
+Logger::logstream & Logger::critical (logstream & err) {
 	if (err != cerr)
 		print_time(err);
 	print_level(2, err, err == cerr);
 	return err;
 }
 
-ostream & Logger::debug (const char * file, int line)
-{
+Logger::logstream & Logger::debug (const char * file, int line) {
 	return debug(* out, file, line);
 }
 
-ostream & Logger::debug (ostream & out, const char * file, int line)
-{
+Logger::logstream & Logger::debug (logstream & out, const char * file, int line) {
 	out << "Debug message (File \"" << cbasename(file) << "\", line " << line << "): ";
 	return out;
 }
