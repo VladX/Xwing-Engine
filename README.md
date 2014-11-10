@@ -48,4 +48,4 @@ LICENSE
 
 Xwing is free software and distributed under the terms of the GNU General Public License v3. See COPYING file for details.
 
-[xwing_logo]: https://raw.githubusercontent.com/VladX/Xwing-Engine/res/logo.png
+[xwing_logo]: https://raw.githubusercontent.com/VladX/Xwing-Engine/development/res/logo.png
