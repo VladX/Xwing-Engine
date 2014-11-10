@@ -49,6 +49,7 @@
 #include "external.hpp"
 #include "static_memory_pool.hpp"
 #include "hash_table.hpp"
+#include "dynamic_array.hpp"
 using namespace std;
 
 #endif

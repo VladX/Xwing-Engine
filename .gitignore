@@ -5,10 +5,11 @@ a.exe
 *.ignore
 /objs/*
 /*.log
-/config.lua
-src/config.h
+/config.js
+/src/config.h
 Makefile
 CMakeCache.txt
 cmake_install.cmake
 install_manifest.txt
 CMakeFiles
+/*.kdev4

@@ -21,23 +21,15 @@
 #include "js.hpp"
 #include "fcgi.hpp"
 
-typedef struct {
-	unsigned char buf[SERVER_SMALL_CHUNK_SIZE];
-} small_chunk_t;
-
-typedef struct {
-	char buf[SERVER_LARGE_CHUNK_SIZE];
-} large_chunk_t;
-
 static uv_loop_t * loop;
+static uv_timer_t timer_scavenger;
 static StaticMemoryPool<transfer_t, SERVER_PREALLOC_TRANSFER_T> server_pool;
-static StaticMemoryPool<small_chunk_t, SERVER_PREALLOC_TRANSFER_T> small_pool;
-static StaticMemoryPool<large_chunk_t, SERVER_PREALLOC_LARGE_CHUNKS> large_pool;
+static StaticMemoryPool<chunk_t, SERVER_PREALLOC_CHUNKS> chunk_pool;
 
 static void read_alloc (uv_handle_t *, size_t, uv_buf_t * buf) {
 	try {
-		buf->base = (char *) small_pool.allocate(); // TODO: Выделять из большого пула, если заголовки прочитаны
-		buf->len = sizeof(small_chunk_t);
+		buf->base = (char *) chunk_pool.allocate();
+		buf->len = sizeof(chunk_t);
 	}
 	catch (bad_alloc) {
 		buf->base = 0;
@@ -50,19 +42,49 @@ static void after_read (uv_stream_t * handle, ssize_t nread, const uv_buf_t * bu
 	if (unlikely(nread < 0)) {
 		if (unlikely(nread != UV_EOF))
 			LOG_ERROR("read: " << uv_strerror(nread));
-		
 		DEBUG_PRINT_3("Deallocating all transfer buffers: " << (void *) transfer);
 		uv_read_stop(handle);
 		if (buf->base)
-			small_pool.deallocate((small_chunk_t *) buf->base);
+			chunk_pool.deallocate((chunk_t *) buf->base);
 		server_pool.deallocate(transfer);
 		return;
 	}
 	DEBUG_PRINT_3("Reading " << nread << " bytes from transfer: " << (void *) transfer);
-	if (likely(nread))
-		fcgi_process(transfer, buf->base, nread);
+	if (likely(nread)) {
+		size_t len = nread, pos;
+		char * ptr = buf->base;
+		if (likely(transfer->padding < len))
+			len -= transfer->padding, ptr += transfer->padding;
+		else {
+			transfer->padding -= len;
+			len = 0;
+		}
+		while (len > 7 && (pos = fcgi_find_ending(ptr, len)) != len) {
+			if (unlikely(transfer->preservedChunks.size())) {
+				for (size_t i = 0; i < transfer->preservedChunks.size(); ++i) {
+					fcgi_process(transfer, get<1>(transfer->preservedChunks[i]), get<2>(transfer->preservedChunks[i]));
+					chunk_pool.deallocate(get<0>(transfer->preservedChunks[i]));
+				}
+				transfer->preservedChunks.resize(0);
+			}
+			fcgi_process(transfer, ptr, pos + sizeof(FCGI_Header));
+			auto hdrEndPos = pos + ((FCGI_Header *) (ptr + pos))->paddingLength + sizeof(FCGI_Header);
+			if (unlikely(hdrEndPos > len)) {
+				transfer->padding = (uchar) (hdrEndPos - len);
+				break;
+			}
+			else {
+				ptr += hdrEndPos;
+				len -= hdrEndPos;
+			}
+		}
+		if (unlikely(len)) {
+			transfer->preservedChunks.push_back(make_tuple((chunk_t *) buf->base, ptr, len));
+			return;
+		}
+	}
 	if (likely(buf->base))
-		small_pool.deallocate((small_chunk_t *) buf->base);
+		chunk_pool.deallocate((chunk_t *) buf->base);
 }
 
 static void on_connection (uv_stream_t * server, int status) {
@@ -73,8 +95,7 @@ static void on_connection (uv_stream_t * server, int status) {
 	
 	transfer_t * transfer = server_pool.allocate();
 	uv_tcp_t * stream = &transfer->handle;
-	memset(transfer, 0, sizeof(* transfer));
-	new(&transfer->requests) vector<void *>;
+	memset(stream, 0, sizeof(* stream));
 	stream->data = transfer;
 	
 	DEBUG_PRINT_2("New connection received, transfer buffer was allocated from a pool: " << reinterpret_cast<void *>(transfer));
@@ -99,6 +120,12 @@ static void on_connection (uv_stream_t * server, int status) {
 		server_pool.deallocate(transfer);
 		return;
 	}
+}
+
+static void scavenger (uv_timer_t *) {
+	DEBUG_PRINT_2("Performing cleaning operations");
+	chunk_pool.free_unused();
+	server_pool.free_unused();
 }
 
 static bool is_valid_ipv4_addr (const char * addr) {
@@ -184,9 +211,12 @@ void tcp_setup () {
 }
 
 void server_init () {
-	JS::MainInstance::init();
+	//JS::MainInstance::init();
 	loop = uv_default_loop();
 	tcp_setup();
+	uv_timer_init(loop, &timer_scavenger);
+	uv_unref((uv_handle_t *) &timer_scavenger);
+	uv_timer_start(&timer_scavenger, scavenger, SERVER_SCAVENGER_TIMER, SERVER_SCAVENGER_TIMER);
 	uv_run(loop, UV_RUN_DEFAULT);
-	uv_loop_delete(loop);
+	uv_loop_close(loop);
 }

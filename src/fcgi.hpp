@@ -23,9 +23,35 @@
 #include "server.hpp"
 
 typedef struct {
-	int x;
-} request_t;
+	union {
+		struct {
+			unsigned char version;
+			unsigned char type;
+			unsigned char requestIdB1;
+			unsigned char requestIdB0;
+			unsigned char contentLengthB1;
+			unsigned char contentLengthB0;
+			unsigned char paddingLength;
+			unsigned char reserved;
+		};
+		uint64_t word;
+	};
+	
+	inline uint16_t getContentLength () const {
+		return ((uint16_t) contentLengthB0) | (((uint16_t) contentLengthB1) << 8);
+	}
+	
+	inline unsigned int getFullLength () const {
+		return (unsigned int) getContentLength() + (unsigned int) paddingLength;
+	}
+	
+	inline uint16_t getRequestId () const {
+		return ((uint16_t) requestIdB0) | (((uint16_t) requestIdB1) << 8);
+	}
+} FCGI_Header;
 
-void fcgi_process (transfer_t *, char *, size_t);
+size_t fcgi_find_ending (const char *, size_t);
+
+void fcgi_process (transfer_t *, const char *, size_t);
 
 #endif

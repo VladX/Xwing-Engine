@@ -28,10 +28,25 @@
 #endif
 
 typedef struct {
+	char buf[SERVER_CHUNK_SIZE];
+} chunk_t;
+
+typedef struct {
+	bool closeAfterFinish;
+} request_t;
+
+typedef struct {
 	uv_tcp_t handle;
-	vector<void *> requests;
-	unsigned char partialHeader[8];
+	DynamicArray<request_t> requests;
+	/*unsigned char partialHeader[8];
+	uint16_t currentRequestId;
+	uint16_t bytesRemaining;
+	unsigned char padBytesRemaining;
 	unsigned char partialHeaderLength;
+	unsigned char type;
+	bool markForClose;*/
+	DynamicArray< tuple<chunk_t *, char *, size_t> > preservedChunks;
+	uchar padding;
 } transfer_t;
 
 void server_init ();

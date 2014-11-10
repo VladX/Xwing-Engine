@@ -22,10 +22,17 @@
 
 #include "common.hpp"
 
+#ifdef __GNUC__
+#define CALL_ATTRIBUTE_MALLOC __attribute__ ((malloc))
+#else
+#define CALL_ATTRIBUTE_MALLOC
+#endif
+
 namespace xwing {
 
 extern void * (* alloc_fn)(size_t);
 extern void * (* realloc_fn)(void *, size_t);
+extern void * (* exrealloc_fn)(void *, size_t, size_t);
 extern void * (* calloc_fn)(size_t, size_t);
 extern void (* free_fn)(void *);
 
@@ -38,12 +45,13 @@ public:
 	T * allocate(size_t size, const T *) { return allocate(size); };
 	T * zallocate(size_t);
 	T * reallocate(T *, size_t);
+	T * reallocate(T *, size_t, size_t);
 	void deallocate(T *);
-	void deallocate(T * ptr, size_t) { deallocate(ptr); };
+	void deallocate(T *, size_t);
 };
 
 template<typename T>
-inline T * GlobalAllocator<T>::allocate(size_t size) {
+CALL_ATTRIBUTE_MALLOC inline T * GlobalAllocator<T>::allocate(size_t size) {
 	T * ptr = reinterpret_cast<T *>(xwing::alloc_fn(sizeof(T) * size));
 	if (likely(ptr))
 		return ptr;
@@ -53,7 +61,7 @@ inline T * GlobalAllocator<T>::allocate(size_t size) {
 }
 
 template<typename T>
-inline T * GlobalAllocator<T>::zallocate(size_t size) {
+CALL_ATTRIBUTE_MALLOC inline T * GlobalAllocator<T>::zallocate(size_t size) {
 	T * ptr = reinterpret_cast<T *>(xwing::calloc_fn(sizeof(T), size));
 	if (likely(ptr))
 		return ptr;
@@ -73,7 +81,22 @@ inline T * GlobalAllocator<T>::reallocate(T * ptr, size_t new_size) {
 }
 
 template<typename T>
+inline T * GlobalAllocator<T>::reallocate(T * ptr, size_t new_size, size_t actual_old_size) {
+	ptr = reinterpret_cast<T *>(xwing::exrealloc_fn(ptr, sizeof(T) * new_size, sizeof(T) * actual_old_size));
+	if (likely(ptr))
+		return ptr;
+	if (new_size != 0)
+		throw std::bad_alloc();
+	return ptr;
+}
+
+template<typename T>
 inline void GlobalAllocator<T>::deallocate(T * ptr) {
+	xwing::free_fn(ptr);
+}
+
+template<typename T>
+inline void GlobalAllocator<T>::deallocate(T * ptr, size_t) {
 	xwing::free_fn(ptr);
 }
 
@@ -83,15 +106,13 @@ extern GlobalAllocator<char> allocator;
 
 };
 
-void * operator new(size_t size);
-void * operator new(size_t size, const std::nothrow_t &) throw();
-void * operator new[](size_t size);
-void * operator new[](size_t size, const std::nothrow_t &) throw();
+CALL_ATTRIBUTE_MALLOC void * operator new(size_t size);
+CALL_ATTRIBUTE_MALLOC void * operator new(size_t size, const std::nothrow_t &) throw();
+CALL_ATTRIBUTE_MALLOC void * operator new[](size_t size) CALL_ATTRIBUTE_MALLOC;
+CALL_ATTRIBUTE_MALLOC void * operator new[](size_t size, const std::nothrow_t &) throw();
 void operator delete(void * ptr) throw();
 void operator delete(void * ptr, const std::nothrow_t &) throw();
 void operator delete[](void * ptr) throw();
 void operator delete[](void * ptr, const std::nothrow_t &) throw();
-
-void allocator_setup();
 
 #endif

@@ -91,12 +91,14 @@ inline T * StaticMemoryPool<T, reserved_blocks>::allocate () {
 		allocated_list->next->prev = allocated_list;
 	if (free_list)
 		free_list->prev = 0;
+	new(&allocated_list->data) T;
 	
 	return &allocated_list->data;
 }
 
 template<typename T, size_t reserved_blocks>
 inline void StaticMemoryPool<T, reserved_blocks>::deallocate (T * ptr) {
+	ptr->~T();
 	struct block * tmp = (struct block *) (((uchar *) ptr) - 2 * sizeof(void *));
 	if (tmp->prev)
 		tmp->prev->next = tmp->next;
