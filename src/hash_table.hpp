@@ -54,6 +54,7 @@ template<typename valT, size_t buckets>
 inline void HashTable<valT, buckets>::add_new_memblock() {
 	struct memblock_header * tmp = mem;
 	mem = (struct memblock_header *) xwing::allocator.allocate(sizeof(struct memblock_header) + (sizeof(struct block) * buckets));
+	ASSUME_ALIGNED(mem, 16, struct memblock_header *);
 	mem->next = tmp;
 	free_list = (struct block *) (((uchar *) mem) + sizeof(struct memblock_header));
 	size_t i;
@@ -73,8 +74,8 @@ HashTable<valT, buckets>::HashTable() {
 
 template<typename valT, size_t buckets>
 inline typename HashTable<valT, buckets>::block * HashTable<valT, buckets>::find_by_hash (const uint64_t hash, struct block * list) {
-	while (list) {
-		if (list->hash == hash)
+	while (likely(list)) {
+		if (likely(list->hash == hash))
 			return list;
 		list = list->next;
 	}
@@ -83,11 +84,11 @@ inline typename HashTable<valT, buckets>::block * HashTable<valT, buckets>::find
 
 template<typename valT, size_t buckets>
 inline valT & HashTable<valT, buckets>::operator[] (const uint64_t hash) {
-	if (!free_list)
+	if (unlikely(!free_list))
 		add_new_memblock();
 	uint64_t idx = hash % buckets;
 	struct block * tmp = find_by_hash(hash, allocated_list[idx]);
-	if (tmp)
+	if (likely(tmp))
 		return tmp->data;
 	tmp = allocated_list[idx];
 	allocated_list[idx] = free_list;
@@ -98,7 +99,7 @@ inline valT & HashTable<valT, buckets>::operator[] (const uint64_t hash) {
 }
 
 template<typename valT, size_t buckets>
-valT & HashTable<valT, buckets>::operator[] (const static_string & key) {
+inline valT & HashTable<valT, buckets>::operator[] (const static_string & key) {
 	return (* this)[external::cityhash64(key.c_str(), key.length())];
 }
 

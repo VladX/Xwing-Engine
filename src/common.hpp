@@ -20,9 +20,9 @@
 #ifndef __COMMON_H_
 #define __COMMON_H_ 1
 
-#include <vector>
 #include <algorithm>
 #include <string>
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -50,6 +50,7 @@
 #include "static_memory_pool.hpp"
 #include "hash_table.hpp"
 #include "dynamic_array.hpp"
+#include "queue.hpp"
 using namespace std;
 
 #endif

@@ -32,6 +32,7 @@ private:
 	bool absolute = false;
 protected:
 	vector<string> components;
+	
 public:
 	path (const string &);
 	

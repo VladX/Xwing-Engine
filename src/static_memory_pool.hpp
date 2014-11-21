@@ -57,6 +57,7 @@ template<typename T, size_t reserved_blocks>
 inline void StaticMemoryPool<T, reserved_blocks>::add_new_memblock() {
 	struct memblock_header * tmp = mem;
 	mem = (struct memblock_header *) xwing::allocator.allocate(sizeof(struct memblock_header) + (sizeof(struct block) * reserved_blocks));
+	ASSUME_ALIGNED(mem, 16, struct memblock_header *);
 	mem->next = tmp;
 	free_list = (struct block *) (((uchar *) mem) + sizeof(struct memblock_header));
 	size_t i;

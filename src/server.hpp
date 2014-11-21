@@ -27,27 +27,51 @@
 #include <sys/stat.h>
 #endif
 
-typedef struct {
-	char buf[SERVER_CHUNK_SIZE];
-} chunk_t;
+struct chunk_t {
+	union {
+		char buf[SERVER_CHUNK_SIZE];
+		struct {
+			char hdr[8];
+			char body[SERVER_CHUNK_SIZE - sizeof(hdr)];
+		};
+	};
+};
 
-typedef struct {
+static_assert(sizeof(chunk_t) == SERVER_CHUNK_SIZE, ""); // just to make sure...
+
+struct request_t {
+	chunk_t * writeBuffer;
+	struct transfer_t * transfer;
+	uint8_t hdrEndReq[24];
+	uint16_t writeBufferRemaining;
+	uint16_t rid;
 	bool closeAfterFinish;
-} request_t;
+	
+	void write (const char *, size_t);
+	void flush ();
+};
 
-typedef struct {
-	uv_tcp_t handle;
+struct transfer_t {
+	union {
+		uv_tcp_t handle;
+		uv_pipe_t phandle;
+	};
 	DynamicArray<request_t> requests;
-	/*unsigned char partialHeader[8];
-	uint16_t currentRequestId;
-	uint16_t bytesRemaining;
-	unsigned char padBytesRemaining;
-	unsigned char partialHeaderLength;
-	unsigned char type;
-	bool markForClose;*/
-	DynamicArray< tuple<chunk_t *, char *, size_t> > preservedChunks;
-	uchar padding;
-} transfer_t;
+	typedef struct PreservedChunk {
+		chunk_t * chunk;
+		const char * data;
+		size_t size;
+		
+		static inline PreservedChunk make (chunk_t * chunk, const char * data, size_t size) { PreservedChunk t = {chunk, data, size}; return t; };
+	} PreservedChunk;
+	DynamicArray<PreservedChunk> preservedChunks;
+	//uchar padding;
+	uint8_t recordHeader[8];
+	uint recordBytes;
+	
+	transfer_t();
+	~transfer_t();
+};
 
 void server_init ();
 

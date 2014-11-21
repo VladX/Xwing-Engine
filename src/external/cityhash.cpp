@@ -31,8 +31,7 @@
 #include <algorithm>
 #include <string.h>
 
-namespace external
-{
+namespace external {
 
 typedef uint64_t uint64;
 typedef uint32_t uint32;

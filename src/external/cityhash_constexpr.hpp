@@ -1,4 +1,4 @@
-/* Following code got from https://github.com/LordJZ/consthash */
+/* Following code was taken from https://github.com/LordJZ/consthash */
 
 namespace external
 {

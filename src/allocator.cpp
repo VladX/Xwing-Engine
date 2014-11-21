@@ -24,7 +24,7 @@ extern "C" {
 CALL_ATTRIBUTE_MALLOC void * malloc(size_t);
 CALL_ATTRIBUTE_MALLOC void * calloc(size_t, size_t);
 void * realloc(void *, size_t);
-void * exrealloc(void *, size_t, size_t);
+void * exrealloc(void *, size_t, size_t, size_t);
 void free(void *);
 };
 
@@ -32,7 +32,7 @@ namespace xwing {
 
 void * (* alloc_fn)(size_t) = malloc;
 void * (* realloc_fn)(void *, size_t) = realloc;
-void * (* exrealloc_fn)(void *, size_t, size_t) = exrealloc;
+void * (* exrealloc_fn)(void *, size_t, size_t, size_t) = exrealloc;
 void * (* calloc_fn)(size_t, size_t) = calloc;
 void (* free_fn)(void *) = free;
 

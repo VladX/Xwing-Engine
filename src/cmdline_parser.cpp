@@ -29,10 +29,12 @@ CmdlineParser::CmdlineParser(int argc, char ** argv) {
 			throw 0;
 		}
 		else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-			cout << " Usage: "_tr << cbasename(argv[0]) << " [-f config_file -f another_config_file ...]\n\n\
-    -v, --version       Show version\n\
-    -h, --help          Show this message\n\
-    -f config_file      Load 'config_file'; this option can be passed more than once; if it is not present, '" CONFIG_PATH "' will be used as default"_tr << endl;
+			cout << " Usage: "_tr << cbasename(argv[0]) <<
+R"( [-f config_file -f another_config_file ...]
+
+    -v, --version    Show version
+    -h, --help       Show this message
+    -f config_file   Load 'config_file'; this option can be passed more than once; if it is not present, ')"_tr CONFIG_PATH "' will be used as default"_tr << endl;
 			cout << endl << copyright << endl;
 			throw 0;
 		}

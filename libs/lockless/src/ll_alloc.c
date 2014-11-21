@@ -4988,7 +4988,7 @@ static noinline void *realloc_aux2(void *p, size_t size, atls *tl)
 }
 
 /* Same as realloc(), but takes additional parameter 'actual_old_size' to eliminate overcopying */
-void *PREFIX(exrealloc)(void *p, size_t size, size_t actual_old_size)
+void *PREFIX(exrealloc)(void *p, size_t size, size_t actual_old_size, size_t copy_offset)
 {
 	DECL_PROF_FUNC;
 
@@ -5054,7 +5054,7 @@ void *PREFIX(exrealloc)(void *p, size_t size, size_t actual_old_size)
 
 	/* Copy data */
 	if (size > actual_old_size) size = actual_old_size;
-	memcpy(np, p, size);
+	memcpy(np + copy_offset, p + copy_offset, size - copy_offset);
 
 	PREFIX(free)(p);
 

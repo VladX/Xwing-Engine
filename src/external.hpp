@@ -22,7 +22,7 @@
 
 #include "config.h"
 
-#if defined(COMPILER_HAVE_CONSTEXPR) && !defined(IS_HOST_BIG_ENDIAN)
+#if !defined(IS_HOST_BIG_ENDIAN)
 #include "external/cityhash_constexpr.hpp"
 #define EXTERNAL_CONSTEXPR_CITYHASH64 external::consthash::city64
 #else

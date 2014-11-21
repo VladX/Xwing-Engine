@@ -28,6 +28,26 @@
 #define unlikely(X) (X)
 #endif
 
+#if defined(__GNUC__)
+#define ATTRIBUTE_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#define ATTRIBUTE_RESTRICT __restrict
+#else
+#define ATTRIBUTE_RESTRICT
+#endif
+
+#ifdef COMPILER_HAVE_ASSUME_ALIGNED
+#define ASSUME_ALIGNED(X, A, TYPE) X = (TYPE) __builtin_assume_aligned(X, A)
+#else
+#define ASSUME_ALIGNED(X, A, TYPE)
+#endif
+
+#if defined(__GNUC__)
+#define threadlocal __thread
+#else
+#define threadlocal __declspec(thread)
+#endif
+
 #if DEBUG_LEVEL == 0
 #undef assert
 #define assert(X)

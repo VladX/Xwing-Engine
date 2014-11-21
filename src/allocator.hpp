@@ -22,8 +22,12 @@
 
 #include "common.hpp"
 
-#ifdef __GNUC__
+#if defined(__GNUC__)
 #define CALL_ATTRIBUTE_MALLOC __attribute__ ((malloc))
+#elif defined(_MSC_VER) && _MSC_VER >= 1900
+#define CALL_ATTRIBUTE_MALLOC __declspec(restrict) __declspec(noalias) __declspec(allocator)
+#elif defined(_MSC_VER)
+#define CALL_ATTRIBUTE_MALLOC __declspec(restrict) __declspec(noalias)
 #else
 #define CALL_ATTRIBUTE_MALLOC
 #endif
@@ -32,22 +36,23 @@ namespace xwing {
 
 extern void * (* alloc_fn)(size_t);
 extern void * (* realloc_fn)(void *, size_t);
-extern void * (* exrealloc_fn)(void *, size_t, size_t);
+extern void * (* exrealloc_fn)(void *, size_t, size_t, size_t);
 extern void * (* calloc_fn)(size_t, size_t);
 extern void (* free_fn)(void *);
 
 };
 
 template<typename T>
-class GlobalAllocator : public std::allocator<T> {
+class GlobalAllocator {
 public:
-	T * allocate(size_t);
-	T * allocate(size_t size, const T *) { return allocate(size); };
-	T * zallocate(size_t);
-	T * reallocate(T *, size_t);
-	T * reallocate(T *, size_t, size_t);
-	void deallocate(T *);
-	void deallocate(T *, size_t);
+	static T * allocate(size_t);
+	static inline T * allocate(size_t size, const T *) { return allocate(size); };
+	static T * zallocate(size_t);
+	static T * reallocate(T *, size_t);
+	static T * reallocate(T *, size_t, size_t);
+	static T * reallocate(T *, size_t, size_t, size_t);
+	static void deallocate(T *);
+	static void deallocate(T *, size_t);
 };
 
 template<typename T>
@@ -82,7 +87,17 @@ inline T * GlobalAllocator<T>::reallocate(T * ptr, size_t new_size) {
 
 template<typename T>
 inline T * GlobalAllocator<T>::reallocate(T * ptr, size_t new_size, size_t actual_old_size) {
-	ptr = reinterpret_cast<T *>(xwing::exrealloc_fn(ptr, sizeof(T) * new_size, sizeof(T) * actual_old_size));
+	ptr = reinterpret_cast<T *>(xwing::exrealloc_fn(ptr, sizeof(T) * new_size, sizeof(T) * actual_old_size, 0));
+	if (likely(ptr))
+		return ptr;
+	if (new_size != 0)
+		throw std::bad_alloc();
+	return ptr;
+}
+
+template<typename T>
+inline T * GlobalAllocator<T>::reallocate(T * ptr, size_t new_size, size_t actual_old_size, size_t copy_offset) {
+	ptr = reinterpret_cast<T *>(xwing::exrealloc_fn(ptr, sizeof(T) * new_size, sizeof(T) * actual_old_size, sizeof(T) * copy_offset));
 	if (likely(ptr))
 		return ptr;
 	if (new_size != 0)

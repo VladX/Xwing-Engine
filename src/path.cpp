@@ -49,7 +49,7 @@ path::path (const string & p) : absolute(false) {
 
 void path::append (const string & p) {
 	path add(p);
-	for (vector<string>::const_iterator it = add.components.cbegin(); it != add.components.cend(); ++it)
+	for (auto it = add.components.cbegin(); it != add.components.cend(); ++it)
 		components.push_back(* it);
 }
 
@@ -103,7 +103,7 @@ string path::serialize () const {
 	if (absolute)
 		result = default_separator;
 #endif
-	for (vector<string>::const_iterator it = components.cbegin(); it != components.cend(); ++it) {
+	for (auto it = components.cbegin(); it != components.cend(); ++it) {
 		if (it != components.cbegin())
 			result += default_separator;
 		result += * it;

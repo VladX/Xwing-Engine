@@ -20,61 +20,60 @@
 #include "common.hpp"
 #include "fcgi.hpp"
 
-#define FCGI_VERSION_1           1
-
-#define FCGI_BEGIN_REQUEST       1
-#define FCGI_ABORT_REQUEST       2
-#define FCGI_END_REQUEST         3
-#define FCGI_PARAMS              4
-#define FCGI_STDIN               5
-#define FCGI_STDOUT              6
-#define FCGI_STDERR              7
-#define FCGI_DATA                8
-#define FCGI_GET_VALUES          9
-#define FCGI_GET_VALUES_RESULT  10
-#define FCGI_UNKNOWN_TYPE       11
-#define FCGI_MAXTYPE (FCGI_UNKNOWN_TYPE)
-
-typedef struct {
+struct FCGI_BeginRequestBody {
 	unsigned char roleB1;
 	unsigned char roleB0;
 	unsigned char flags;
 	unsigned char reserved[5];
-} FCGI_BeginRequestBody;
+};
 
-size_t fcgi_find_ending (const char * data, size_t length) {
-	FCGI_Header expect = {{{FCGI_VERSION_1, FCGI_PARAMS, 0, 0, 0, 0, 0, 0}}};
-	FCGI_Header mask = {{{0xFF, 0xFE, 0, 0, 0xFF, 0xFF, 0, 0xFF}}};
-	size_t len = length + 1 - sizeof(FCGI_Header);
-	for (size_t i = 0; i < len; ++i)
-		if (unlikely(((* ((uint64_t *) (data + i))) & mask.word) == expect.word))
-			return i;
-	return length;
-}
+struct FCGI_EndRequestBody {
+	unsigned char appStatusB3;
+	unsigned char appStatusB2;
+	unsigned char appStatusB1;
+	unsigned char appStatusB0;
+	unsigned char protocolStatus;
+	unsigned char reserved[3];
+};
 
-void fcgi_process (transfer_t * transfer, const char * data, size_t length) {
-	const char * end = data + length;
-	DEBUG_PRINT_3(length);
-	for (FCGI_Header * hdr = (FCGI_Header *) data; (const char *) hdr < end; hdr = (FCGI_Header *) data) {
-		DEBUG_PRINT_3("RID=" << hdr->getRequestId() << "; content length=" << hdr->getContentLength() << "; type=" << (int) hdr->type);
-		data += sizeof(FCGI_Header);
-		uint16_t rid = hdr->getRequestId();
-		switch (hdr->type) {
-			case FCGI_BEGIN_REQUEST:
-				transfer->requests.resize(rid);
-				transfer->requests[--rid].closeAfterFinish = ((FCGI_BeginRequestBody *) data)->flags == 0;
-				DEBUG_PRINT_3("Keep connection=" << transfer->requests[rid].closeAfterFinish);
-				break;
-			case FCGI_PARAMS:
-				for (size_t i = 0, len = hdr->getContentLength(); i < len;) {
-					string name(data + i + 2, data[i]), value(data + i + 2 + data[i], data[i + 1]);
-					DEBUG_PRINT_3(name << ':' << value);
-					i += 2UL + data[i] + data[i + 1];
-				}
-				break;
-			default:
-				break;
-		}
-		data += hdr->getFullLength();
+struct FCGI_EndRequestRecord {
+	FCGI_Header header;
+	FCGI_EndRequestBody body;
+};
+
+void fcgi_process_record (transfer_t * transfer, FCGI_Header * hdr, const char * data, size_t length) {
+	DEBUG_PRINT_3("RID=" << hdr->getRequestId() << "; content length=" << hdr->getContentLength() << "; type=" << (int) hdr->type);
+	uint16_t rid = hdr->getRequestId();
+	transfer->requests.extend_to_fit(rid);
+	request_t * req = &transfer->requests[rid - 1];
+	switch (hdr->type) {
+		case FCGI_BEGIN_REQUEST:
+			req->writeBuffer = nullptr;
+			req->transfer = transfer;
+			req->rid = rid;
+			req->closeAfterFinish = ((FCGI_BeginRequestBody *) data)->flags == 0;
+			* ((FCGI_Header *) req->hdrEndReq) = FCGI_Header(FCGI_STDOUT, rid, 0);
+			* ((FCGI_EndRequestRecord *) &req->hdrEndReq[sizeof(FCGI_Header)]) = {FCGI_Header(FCGI_END_REQUEST, rid, sizeof(FCGI_EndRequestBody)), {0, 0, 0, 0, FCGI_REQUEST_COMPLETE, {0, 0, 0}}};
+			DEBUG_PRINT_3("Keep connection=" << !req->closeAfterFinish);
+			{
+			DEBUG_PRINT_3("Writing");
+			const char str[] = "Content-Type: text/plain\r\n\r\ntest";
+			req->write(str, sizeof(str)-1);
+			req->flush();
+			}
+			break;
+		case FCGI_PARAMS:
+			for (size_t i = 0, len = length; i < len;) {
+				string name(data + i + 2, data[i]), value(data + i + 2 + data[i], data[i + 1]);
+				DEBUG_PRINT_3(name << ':' << value);
+				i += 2UL + data[i] + data[i + 1];
+			}
+			break;
+		case FCGI_ABORT_REQUEST:
+			DEBUG_PRINT_2("Request aborted");
+			/* ... */
+			break;
+		default:
+			break;
 	}
 }
